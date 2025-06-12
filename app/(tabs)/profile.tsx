@@ -77,7 +77,7 @@ export default function Profile() {
               <User size={40} color="#6B7280" />
             </View>
           </View>
-          <Text style={styles.profileName}>Sarah Johnson</Text>
+          <Text style={styles.profileName}>Archie Albarico</Text>
           <Text style={styles.profileBio}>
             "Writing helps me understand myself better and appreciate life's small moments."
           </Text>
