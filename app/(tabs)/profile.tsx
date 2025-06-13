@@ -1,12 +1,15 @@
+import * as ImagePicker from 'expo-image-picker';
 import {
   Bell,
   BookOpen,
   Calendar,
+  Camera,
+  Edit,
   Globe,
   Heart,
   Lock,
   LogIn,
-  LogOut, // Added Lock
+  LogOut,
   Settings,
   Shield,
   Smartphone,
@@ -17,10 +20,12 @@ import {
 import React, { useState } from 'react';
 import {
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -35,9 +40,11 @@ interface Stat {
 
 export default function Profile() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [editNameModalVisible, setEditNameModalVisible] = useState(false);
+  const [tempName, setTempName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const { entries } = useJournal();
+  const { entries, userProfile, updateUserProfile } = useJournal();
 
   // Calculate real statistics
   const totalEntries = entries.filter(entry => !entry.isArchived).length;
@@ -159,6 +166,77 @@ export default function Profile() {
         { text: 'Cancel', style: 'cancel' },
       ]
     );
+  };
+
+  const handleProfilePicturePress = async () => {
+    Alert.alert(
+      'Profile Picture',
+      'Choose an option',
+      [
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission denied', 'Sorry, we need camera permissions to take a photo.');
+              return;
+            }
+            
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+              await updateUserProfile({ profilePicture: result.assets[0].uri });
+            }
+          },
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission denied', 'Sorry, we need gallery permissions to choose a photo.');
+              return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+              await updateUserProfile({ profilePicture: result.assets[0].uri });
+            }
+          },
+        },
+        {
+          text: 'Remove Picture',
+          style: 'destructive',
+          onPress: async () => {
+            await updateUserProfile({ profilePicture: undefined });
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleEditName = () => {
+    setTempName(userProfile.name);
+    setEditNameModalVisible(true);
+  };
+
+  const handleSaveName = async () => {
+    if (tempName.trim()) {
+      await updateUserProfile({ name: tempName.trim() });
+      setEditNameModalVisible(false);
+    }
   }; 
 
   return (
@@ -176,11 +254,23 @@ export default function Profile() {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
           <View style={styles.profileImageContainer}>
-            <View style={styles.profileImage}>
-              <User size={40} color="#6B7280" />
-            </View>
+            <TouchableOpacity style={styles.profileImage} onPress={handleProfilePicturePress}>
+              {userProfile.profilePicture ? (
+                <Image source={{ uri: userProfile.profilePicture }} style={styles.profileImageStyle} />
+              ) : (
+                <User size={40} color="#6B7280" />
+              )}
+              <View style={styles.cameraIcon}>
+                <Camera size={16} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>Archie Albarico</Text>
+          <View style={styles.profileNameContainer}>
+            <Text style={styles.profileName}>{userProfile.name}</Text>
+            <TouchableOpacity style={styles.editNameButton} onPress={handleEditName}>
+              <Edit size={16} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.profileBio}>
             "Writing helps me understand myself better and appreciate life's small moments."
           </Text>
@@ -372,6 +462,59 @@ export default function Profile() {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Name Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editNameModalVisible}
+        onRequestClose={() => setEditNameModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.editNameModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Name</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setEditNameModalVisible(false)}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.editNameContent}>
+              <Text style={styles.inputLabel}>Display Name</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={tempName}
+                onChangeText={setTempName}
+                placeholder="Enter your name"
+                autoFocus
+                maxLength={50}
+              />
+              
+              <View style={styles.editNameButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setEditNameModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.saveButton, !tempName.trim() && styles.saveButtonDisabled]}
+                  onPress={handleSaveName}
+                  disabled={!tempName.trim()}
+                >
+                  <Text style={[styles.saveButtonText, !tempName.trim() && styles.saveButtonTextDisabled]}>
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -430,6 +573,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  profileImageStyle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  editNameButton: {
+    marginLeft: 8,
+    padding: 4,
   },
   profileName: {
     fontSize: 24,
@@ -784,5 +955,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     fontWeight: '600',
+  },
+  
+  // Edit Name Modal styles
+  editNameModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '50%',
+  },
+  editNameContent: {
+    padding: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 24,
+  },
+  editNameButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  saveButtonTextDisabled: {
+    color: '#9CA3AF',
   },
 });
