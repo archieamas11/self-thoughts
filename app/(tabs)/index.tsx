@@ -1,54 +1,46 @@
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { Calendar, Heart, Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Search, Calendar, Heart } from 'lucide-react-native';
-
-interface JournalEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  mood: string;
-}
-
-const mockEntries: JournalEntry[] = [
-  {
-    id: '1',
-    title: 'A Beautiful Morning',
-    content: 'Today started with the most amazing sunrise. The sky was painted in shades of orange and pink, and I felt so grateful to witness such beauty...',
-    date: '2025-01-15',
-    mood: '😊',
-  },
-  {
-    id: '2',
-    title: 'Reflections on Growth',
-    content: 'I\'ve been thinking about how much I\'ve grown this year. The challenges I faced seemed impossible at the time, but they shaped me into who I am today...',
-    date: '2025-01-14',
-    mood: '🤔',
-  },
-  {
-    id: '3',
-    title: 'Gratitude Practice',
-    content: 'Three things I\'m grateful for today: my family\'s health, the warm cup of coffee this morning, and the unexpected call from an old friend...',
-    date: '2025-01-13',
-    mood: '🙏',
-  },
-];
+import ConfirmModal from '../../components/ConfirmModal';
+import { useJournal } from '../../contexts/JournalContext';
 
 export default function JournalHome() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [entries] = useState<JournalEntry[]>(mockEntries);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [selectedEntryForArchive, setSelectedEntryForArchive] = useState<{ id: string; title: string } | null>(null);
+  const { entries, isLoading, archiveEntry } = useJournal();
+  const router = useRouter();
 
-  const filteredEntries = entries.filter(entry =>
-    entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const moodOptions = [
+    { emoji: '😊', label: 'Happy', color: '#FDE047' },
+    { emoji: '😢', label: 'Sad', color: '#60A5FA' },
+    { emoji: '😡', label: 'Angry', color: '#F87171' },
+    { emoji: '😴', label: 'Tired', color: '#A78BFA' },
+    { emoji: '🤔', label: 'Thoughtful', color: '#34D399' },
+    { emoji: '🙏', label: 'Grateful', color: '#FBBF24' },
+  ];
+
+  const filteredEntries = entries.filter(entry => {
+    // Exclude archived entries from main view
+    if (entry.isArchived) return false;
+    
+    const matchesSearchQuery =
+      entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesMood = selectedMood ? entry.mood === selectedMood : true;
+    return matchesSearchQuery && matchesMood;
+  });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -60,7 +52,27 @@ export default function JournalHome() {
     });
   };
 
+  const handleArchiveEntry = async (entryId: string, entryTitle: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedEntryForArchive({ id: entryId, title: entryTitle });
+    setShowArchiveModal(true);
+  };
+
+  const confirmArchiveEntry = async () => {
+    if (selectedEntryForArchive) {
+      try {
+        await archiveEntry(selectedEntryForArchive.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.error('Error archiving entry:', error);
+        // Could add an error modal here if needed
+      }
+    }
+    setSelectedEntryForArchive(null);
+  };
+
   return (
+    // My journal header
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Journal</Text>
@@ -69,6 +81,7 @@ export default function JournalHome() {
         </Text>
       </View>
 
+      {/* Search bar */}
       <View style={styles.searchContainer}>
         <Search size={20} color="#6B7280" style={styles.searchIcon} />
         <TextInput
@@ -80,28 +93,102 @@ export default function JournalHome() {
         />
       </View>
 
-      <ScrollView style={styles.entriesContainer} showsVerticalScrollIndicator={false}>
-        {filteredEntries.map((entry) => (
-          <TouchableOpacity key={entry.id} style={styles.entryCard}>
-            <View style={styles.entryHeader}>
-              <Text style={styles.entryMood}>{entry.mood}</Text>
-              <View style={styles.entryDateContainer}>
-                <Calendar size={14} color="#6B7280" />
-                <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
-              </View>
-            </View>
-            <Text style={styles.entryTitle}>{entry.title}</Text>
-            <Text style={styles.entryContent} numberOfLines={3}>
-              {entry.content}
-            </Text>
-            <View style={styles.entryFooter}>
-              <TouchableOpacity style={styles.favoriteButton}>
-                <Heart size={16} color="#EF4444" />
-              </TouchableOpacity>
-            </View>
+      {/* Mood Filter */}
+      <View style={styles.moodFilterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moodFilterContent}>
+          <TouchableOpacity
+            style={[
+              styles.moodButton,
+              selectedMood === null && styles.activeMoodButton,
+            ]}
+            onPress={() => setSelectedMood(null)}
+          >
+            <Text style={[
+              styles.moodButtonText,
+              selectedMood === null && styles.activeMoodButtonText
+            ]}>All</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          {moodOptions.map((mood) => (
+            <TouchableOpacity
+              key={mood.emoji}
+              style={[
+                styles.moodButton,
+                selectedMood === mood.emoji && styles.activeMoodButton,
+                selectedMood === mood.emoji && { backgroundColor: mood.color, borderColor: mood.color },
+              ]}
+              onPress={() => setSelectedMood(mood.emoji)}
+            >
+              <Text style={[
+                styles.moodButtonText,
+                selectedMood === mood.emoji && styles.activeMoodButtonText
+              ]}>{mood.emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Journal entries list */}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>Loading your entries...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.entriesContainer} showsVerticalScrollIndicator={false}>
+          {filteredEntries.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? 'No entries found' : 'No entries yet'}
+              </Text>
+              <Text style={styles.emptyMessage}>
+                {searchQuery 
+                  ? 'Try adjusting your search terms'
+                  : 'Start your journaling journey by creating your first entry'
+                }
+              </Text>
+            </View>
+          ) : (
+            filteredEntries.map((entry) => (
+              <TouchableOpacity 
+                key={entry.id} 
+                style={styles.entryCard}
+                onPress={() => router.push(`/entry/${entry.id}`)}
+                onLongPress={() => handleArchiveEntry(entry.id, entry.title)}
+                delayLongPress={300}
+              >
+                <View style={styles.entryHeader}>
+                  <Text style={styles.entryMood}>{entry.mood}</Text>
+                  <View style={styles.entryDateContainer}>
+                    <Calendar size={14} color="#6B7280" />
+                    <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
+                  </View>
+                </View>
+                <Text style={styles.entryTitle}>{entry.title}</Text>
+                <Text style={styles.entryContent} numberOfLines={3}>
+                  {entry.content}
+                </Text>
+                <View style={styles.entryFooter}>
+                  <TouchableOpacity style={styles.favoriteButton}>
+                    <Heart size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      )}
+
+      <ConfirmModal
+        visible={showArchiveModal}
+        onClose={() => setShowArchiveModal(false)}
+        onConfirm={confirmArchiveEntry}
+        title="Archive Entry"
+        message={`Are you sure you want to archive "${selectedEntryForArchive?.title}"?`}
+        confirmText="Archive"
+        cancelText="Cancel"
+        confirmColor="#EF4444"
+        iconColor="#EF4444"
+      />
     </View>
   );
 }
@@ -135,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 24,
-    marginVertical: 16,
+    marginVertical: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -150,31 +237,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  moodFilterContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
+  moodFilterContent: {
+    alignItems: 'center',
+  },
+  moodButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  activeMoodButton: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  moodButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  activeMoodButtonText: {
+    color: '#FFFFFF',
+  },
   entriesContainer: {
     flex: 1,
     paddingHorizontal: 24,
   },
   entryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 12, // Changed from 16
+    padding: 16, // Changed from 20
+    marginBottom: 12, // Changed from 16
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1, // Changed from 2
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.08, // Changed from 0.1
+    shadowRadius: 2.62, // Changed from 3.84
+    elevation: 3, // Changed from 5
   },
   entryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8, // Changed from 12
   },
   entryMood: {
     fontSize: 24,
@@ -190,22 +304,55 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   entryTitle: {
-    fontSize: 18,
+    fontSize: 17, // Changed from 18
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 6, // Changed from 8
   },
   entryContent: {
-    fontSize: 14,
+    fontSize: 13, // Changed from 14
     color: '#4B5563',
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 18, // Changed from 20
+    marginBottom: 8, // Changed from 12
   },
   entryFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    marginTop: 4, // Added for slight separation
   },
   favoriteButton: {
-    padding: 8,
+    padding: 6, // Changed from 8
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

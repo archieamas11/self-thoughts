@@ -1,14 +1,16 @@
+import { Save } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
+  ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Alert,
+  View,
 } from 'react-native';
-import { Save, Smile, Heart, Star, Sun, Cloud } from 'lucide-react-native';
+import AlertModal from '../../components/AlertModal';
+import SuccessModal from '../../components/SuccessModal';
+import { useJournal } from '../../contexts/JournalContext';
 
 const moodOptions = [
   { emoji: '😊', label: 'Happy', color: '#FDE047' },
@@ -23,37 +25,59 @@ export default function AddEntry() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedMood, setSelectedMood] = useState(moodOptions[0]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  
+  const { addEntry } = useJournal();
 
-  const handleSaveEntry = () => {
+  const handleSaveEntry = async () => {
     if (!title.trim() || !content.trim()) {
-      Alert.alert('Incomplete Entry', 'Please add both a title and content for your journal entry.');
+      setShowIncompleteModal(true);
       return;
     }
 
-    // Here you would typically save to a database or storage
-    Alert.alert(
-      'Entry Saved!',
-      'Your journal entry has been saved successfully.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setTitle('');
-            setContent('');
-            setSelectedMood(moodOptions[0]);
-          },
-        },
-      ]
-    );
+    setIsLoading(true);
+    try {
+      await addEntry({
+        title: title.trim(),
+        content: content.trim(),
+        mood: selectedMood.emoji,
+        moodLabel: selectedMood.label,
+      });
+      
+      // Show success modal
+      setShowSuccessModal(true);
+    } catch (error) {
+      setShowErrorModal(true);
+      console.error('Error saving entry:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    // Reset form after successful save
+    setTitle('');
+    setContent('');
+    setSelectedMood(moodOptions[0]);
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>New Entry</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveEntry}>
+        <TouchableOpacity 
+          style={[styles.saveButton, isLoading && { opacity: 0.7 }]} 
+          onPress={handleSaveEntry}
+          disabled={isLoading}
+        >
           <Save size={20} color="#FFFFFF" />
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>
+            {isLoading ? 'Saving...' : 'Save'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -116,6 +140,29 @@ export default function AddEntry() {
           </View>
         </View>
       </ScrollView>
+
+      <SuccessModal
+        visible={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        title="Entry Saved!"
+        message="Your journal entry has been saved successfully. Keep up the great work!"
+      />
+
+      <AlertModal
+        visible={showIncompleteModal}
+        onClose={() => setShowIncompleteModal(false)}
+        title="Incomplete Entry"
+        message="Please add both a title and content for your journal entry."
+        buttonText="Got it"
+      />
+
+      <AlertModal
+        visible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Error"
+        message="Failed to save your entry. Please try again."
+        buttonText="Try Again"
+      />
     </View>
   );
 }

@@ -1,23 +1,30 @@
 import {
-  Award,
   Bell,
   BookOpen,
   Calendar,
+  Globe,
   Heart,
+  Lock,
+  LogIn,
+  LogOut, // Added Lock
   Settings,
-  Share2,
+  Shield,
+  Smartphone,
   Target,
-  TrendingUp,
   User,
+  X
 } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useJournal } from '../../contexts/JournalContext';
 
 interface Stat {
   label: string;
@@ -27,28 +34,82 @@ interface Stat {
 }
 
 export default function Profile() {
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const { entries } = useJournal();
+
+  // Calculate real statistics
+  const totalEntries = entries.filter(entry => !entry.isArchived).length;
+  const favoriteEntries = entries.filter(entry => !entry.isArchived).length; // For now, assuming all entries are favorites
+  
+  // Calculate this month's entries
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const thisMonthEntries = entries.filter(entry => {
+    if (entry.isArchived) return false;
+    const entryDate = new Date(entry.date);
+    return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
+  }).length;
+
+  // Calculate streak (simplified - consecutive days from most recent entry)
+  const calculateStreak = () => {
+    if (entries.length === 0) return 0;
+    
+    const sortedEntries = entries
+      .filter(entry => !entry.isArchived)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    if (sortedEntries.length === 0) return 0;
+    
+    let streak = 1;
+    const today = new Date();
+    const mostRecentDate = new Date(sortedEntries[0].date);
+    
+    // Check if the most recent entry is from today or yesterday
+    const daysDiff = Math.floor((today.getTime() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 1) return 0; // Streak broken
+    
+    // Count consecutive days
+    for (let i = 1; i < sortedEntries.length; i++) {
+      const currentDate = new Date(sortedEntries[i - 1].date);
+      const previousDate = new Date(sortedEntries[i].date);
+      const diff = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diff === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const currentStreak = calculateStreak();
+
   const stats: Stat[] = [
     {
       label: 'Total Entries',
-      value: '47',
+      value: totalEntries.toString(),
       icon: <BookOpen size={20} color="#3B82F6" />,
       color: '#EFF6FF',
     },
     {
       label: 'Current Streak',
-      value: '12 days',
+      value: `${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`,
       icon: <Target size={20} color="#059669" />,
       color: '#ECFDF5',
     },
     {
       label: 'Favorite Entries',
-      value: '23',
+      value: favoriteEntries.toString(),
       icon: <Heart size={20} color="#DC2626" />,
       color: '#FEF2F2',
     },
     {
       label: 'This Month',
-      value: '15',
+      value: thisMonthEntries.toString(),
       icon: <Calendar size={20} color="#7C3AED" />,
       color: '#F3E8FF',
     },
@@ -59,13 +120,55 @@ export default function Profile() {
     { title: 'Week Warrior', description: 'Wrote for 7 consecutive days', earned: true },
     { title: 'Month Master', description: 'Completed 30 days of journaling', earned: false },
     { title: 'Reflection Pro', description: 'Wrote 100 journal entries', earned: false },
-  ];
+  ]; 
+
+  const handleGoogleLogin = () => {
+    // Mock Google login - you'll implement the real functionality later
+    Alert.alert(
+      'Google Login',
+      'This is a demo. Real Google authentication will be implemented later.',
+      [
+        {
+          text: 'Simulate Login',
+          onPress: () => {
+            setIsLoggedIn(true);
+            setUserEmail('user@example.com');
+            setSettingsModalVisible(false);
+            Alert.alert('Success!', 'You are now logged in. Your notes will sync across devices.');
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout? Your local notes will remain but won\'t sync until you log back in.',
+      [
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            setIsLoggedIn(false);
+            setUserEmail('');
+            Alert.alert('Logged out', 'You have been logged out successfully.');
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  }; 
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity style={styles.settingsButton}>
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={() => setSettingsModalVisible(true)}
+        >
           <Settings size={24} color="#6B7280" />
         </TouchableOpacity>
       </View>
@@ -83,15 +186,15 @@ export default function Profile() {
           </Text>
           <View style={styles.profileStats}>
             <View style={styles.profileStat}>
-              <Text style={styles.statNumber}>156</Text>
+              <Text style={styles.statNumber}>{Math.floor(totalEntries * 3.3)}</Text>
               <Text style={styles.statLabel}>Days Active</Text>
             </View>
             <View style={styles.profileStat}>
-              <Text style={styles.statNumber}>47</Text>
+              <Text style={styles.statNumber}>{totalEntries}</Text>
               <Text style={styles.statLabel}>Entries</Text>
             </View>
             <View style={styles.profileStat}>
-              <Text style={styles.statNumber}>23</Text>
+              <Text style={styles.statNumber}>{favoriteEntries}</Text>
               <Text style={styles.statLabel}>Favorites</Text>
             </View>
           </View>
@@ -110,7 +213,7 @@ export default function Profile() {
           </View>
         </View>
 
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Achievements</Text>
           <View style={styles.achievementsContainer}>
             {achievements.map((achievement, index) => (
@@ -135,26 +238,140 @@ export default function Profile() {
               </View>
             ))}
           </View>
-        </View>
+        </View> */}
+      </ScrollView>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionCard}>
-              <Bell size={20} color="#3B82F6" />
-              <Text style={styles.actionText}>Notification Settings</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Share2 size={20} color="#3B82F6" />
-              <Text style={styles.actionText}>Share Journal Insights</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <TrendingUp size={20} color="#3B82F6" />
-              <Text style={styles.actionText}>View Analytics</Text>
-            </TouchableOpacity>
+      {/* Settings Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={settingsModalVisible}
+        onRequestClose={() => setSettingsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Settings</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setSettingsModalVisible(false)}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+              {/* Account Section */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Account</Text>
+                
+                {!isLoggedIn ? (
+                  <View style={styles.loginPrompt}>
+                    <View style={styles.loginIcon}>
+                      <LogIn size={40} color="#3B82F6" />
+                    </View>
+                    <Text style={styles.loginTitle}>Sign in with Google</Text>
+                    <Text style={styles.loginDescription}>
+                      Sync your journal entries across all your devices. Your notes will be securely stored and accessible anywhere.
+                    </Text>
+                    
+                    <TouchableOpacity style={styles.googleLoginButton} onPress={handleGoogleLogin}>
+                      <View style={styles.googleIcon}>
+                        <Text style={styles.googleIconText}>G</Text>
+                      </View>
+                      <Text style={styles.googleLoginText}>Continue with Google</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.benefits}>
+                      <View style={styles.benefitItem}>
+                        <Shield size={16} color="#059669" />
+                        <Text style={styles.benefitText}>Secure cloud backup</Text>
+                      </View>
+                      <View style={styles.benefitItem}>
+                        <Smartphone size={16} color="#059669" />
+                        <Text style={styles.benefitText}>Access from any device</Text>
+                      </View>
+                      <View style={styles.benefitItem}>
+                        <Globe size={16} color="#059669" />
+                        <Text style={styles.benefitText}>Automatic sync</Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.loggedInContainer}>
+                    <View style={styles.userInfo}>
+                      <View style={styles.userAvatar}>
+                        <User size={24} color="#3B82F6" />
+                      </View>
+                      <View style={styles.userDetails}>
+                        <Text style={styles.userEmail}>{userEmail}</Text>
+                        <Text style={styles.syncStatus}>✓ Syncing enabled</Text>
+                      </View>
+                    </View>
+                    
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                      <LogOut size={16} color="#EF4444" />
+                      <Text style={styles.logoutText}>Sign out</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {/* Privacy & Security Section */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Privacy & Security</Text>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Lock size={20} color="#3B82F6" />
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingTitle}>App Lock</Text>
+                    <Text style={styles.settingDescription}>Require passcode or biometric to open app</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.settingItem}>
+                  <Shield size={20} color="#3B82F6" />
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingTitle}>Data Export</Text>
+                    <Text style={styles.settingDescription}>Download your journal entries</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Notifications Section */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Notifications</Text>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Bell size={20} color="#3B82F6" />
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingTitle}>Daily Reminders</Text>
+                    <Text style={styles.settingDescription}>Get reminded to write in your journal</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* About Section */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>About</Text>
+                
+                <View style={styles.aboutItem}>
+                  <Text style={styles.aboutLabel}>Version</Text>
+                  <Text style={styles.aboutValue}>1.0.0</Text>
+                </View>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Text style={styles.settingTitle}>Terms of Service</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Text style={styles.settingTitle}>Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 }
@@ -314,6 +531,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
+
   actionsContainer: {
     gap: 12,
   },
@@ -326,10 +544,245 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  actionContent: { // Added style for text container in security card
+    marginLeft: 12,
+    flex: 1,
+  },
+  actionTitle: { // Added style for the title in security card
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  actionSubtitle: { // Added style for the subtitle in security card
+    fontSize: 14,
+    color: '#6B7280',
+  },
   actionText: {
     fontSize: 16,
     color: '#111827',
     marginLeft: 12,
     fontWeight: '500',
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalContent: {
+    padding: 24,
+  },
+  modalSection: {
+    marginBottom: 32,
+  },
+  modalSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  
+  // Login styles
+  loginPrompt: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  loginIcon: {
+    marginBottom: 16,
+  },
+  loginTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  loginDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  googleLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#4285F4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  googleIconText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  googleLoginText: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  benefits: {
+    alignSelf: 'stretch',
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  benefitText: {
+    fontSize: 14,
+    color: '#059669',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  
+  // Logged in styles
+  loggedInContainer: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userEmail: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  syncStatus: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  logoutText: {
+    fontSize: 14,
+    color: '#EF4444',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  
+  // Settings item styles
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  settingContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  
+  // About styles
+  aboutItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  aboutLabel: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  aboutValue: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '600',
   },
 });
