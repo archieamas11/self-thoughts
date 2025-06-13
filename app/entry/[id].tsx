@@ -33,38 +33,51 @@ export default function EntryDetail() {
       setHasUnsavedChanges(false);
     }
   }, [entry]);
-
-  // Auto-save function
+  // Save function that only runs when explicitly called
   const saveChanges = useCallback(async () => {
-    if (hasUnsavedChanges && entry && id && originalEntry.current) {
-      const titleChanged = editedTitle !== originalEntry.current.title;
-      const contentChanged = editedContent !== originalEntry.current.content;
-      
-      if (titleChanged || contentChanged) {
-        try {
-          await updateEntry(id, {
-            title: editedTitle,
-            content: editedContent,
-          });
-          originalEntry.current = { title: editedTitle, content: editedContent };
-          setHasUnsavedChanges(false);
-        } catch (error) {
-          console.error('Error saving changes:', error);
-        }
+    if (!entry || !id || !originalEntry.current) return;
+    
+    const titleChanged = editedTitle !== originalEntry.current.title;
+    const contentChanged = editedContent !== originalEntry.current.content;
+    
+    if (titleChanged || contentChanged) {
+      try {
+        await updateEntry(id, {
+          title: editedTitle,
+          content: editedContent,
+        });
+        originalEntry.current = { title: editedTitle, content: editedContent };
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error('Error saving changes:', error);
       }
     }
-  }, [hasUnsavedChanges, entry, id, editedTitle, editedContent, updateEntry]);
+  }, [entry, id, editedTitle, editedContent, updateEntry]);
 
   // Save when screen loses focus
   useFocusEffect(
     useCallback(() => {
       return () => {
         // This cleanup function runs when the screen loses focus
-        saveChanges();
+        // Only save if there are actual changes
+        if (hasUnsavedChanges && entry && id && originalEntry.current) {
+          const titleChanged = editedTitle !== originalEntry.current.title;
+          const contentChanged = editedContent !== originalEntry.current.content;
+          
+          if (titleChanged || contentChanged) {
+            updateEntry(id, {
+              title: editedTitle,
+              content: editedContent,
+            }).then(() => {
+              originalEntry.current = { title: editedTitle, content: editedContent };
+            }).catch((error) => {
+              console.error('Error saving changes on focus loss:', error);
+            });
+          }
+        }
       };
-    }, [saveChanges])
+    }, [hasUnsavedChanges, entry, id, editedTitle, editedContent, updateEntry])
   );
-
   // Save when navigating back
   const handleBack = async () => {
     await saveChanges();

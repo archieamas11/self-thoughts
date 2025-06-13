@@ -11,38 +11,80 @@ export interface JournalEntry {
   isArchived?: boolean;
 }
 
+export interface UserProfile {
+  name: string;
+  profilePicture?: string;
+}
+
 interface JournalContextType {
   entries: JournalEntry[];
   addEntry: (entry: Omit<JournalEntry, 'id' | 'date'>) => Promise<void>;
   updateEntry: (id: string, updates: Partial<Omit<JournalEntry, 'id' | 'date'>>) => Promise<void>;
   archiveEntry: (id: string) => Promise<void>;
   isLoading: boolean;
+  userProfile: UserProfile;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
 
 const STORAGE_KEY = '@journal_entries';
+const PROFILE_STORAGE_KEY = '@user_profile';
+
+// Generate a random profile name
+const generateRandomName = (): string => {
+  const firstNames = [
+    'Alex', 'Jordan', 'Casey', 'Riley', 'Avery', 'Morgan', 'Quinn', 'Sage', 'River', 'Emery',
+    'Phoenix', 'Rowan', 'Blake', 'Cameron', 'Ellis', 'Finley', 'Harper', 'Indigo', 'Justice', 'Kai'
+  ];
+  
+  const lastNames = [
+    'Chen', 'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez',
+    'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson'
+  ];
+  
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+  
+  return `${firstName} ${lastName}`;
+};
 
 export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile>({ name: '' });
 
-  // Load entries from AsyncStorage on component mount
+  // Load entries and profile from AsyncStorage on component mount
   useEffect(() => {
-    loadEntries();
+    loadData();
   }, []);
-  const loadEntries = async () => {
+
+  const loadData = async () => {
     try {
+      // Load entries
       const storedEntries = await AsyncStorage.getItem(STORAGE_KEY);
       if (storedEntries) {
         setEntries(JSON.parse(storedEntries));
       } else {
-        // No stored entries, start with empty array
         setEntries([]);
       }
+
+      // Load or generate user profile
+      const storedProfile = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+      if (storedProfile) {
+        setUserProfile(JSON.parse(storedProfile));
+      } else {
+        // Generate random name for first-time users
+        const randomName = generateRandomName();
+        const newProfile: UserProfile = { name: randomName };
+        setUserProfile(newProfile);
+        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProfile));
+      }
     } catch (error) {
-      console.error('Error loading entries:', error);
-      setEntries([]); // Fallback to empty array
+      console.error('Error loading data:', error);
+      setEntries([]);
+      // Generate fallback name if loading fails
+      setUserProfile({ name: generateRandomName() });
     } finally {
       setIsLoading(false);
     }
@@ -92,9 +134,27 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    try {
+      const updatedProfile = { ...userProfile, ...updates };
+      setUserProfile(updatedProfile);
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  };
 
   return (
-    <JournalContext.Provider value={{ entries, addEntry, updateEntry, archiveEntry, isLoading }}>
+    <JournalContext.Provider value={{ 
+      entries, 
+      addEntry, 
+      updateEntry, 
+      archiveEntry, 
+      isLoading, 
+      userProfile, 
+      updateUserProfile 
+    }}>
       {children}
     </JournalContext.Provider>
   );
