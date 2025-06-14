@@ -573,6 +573,14 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
+  footerContent:{
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
 });
 
 export default styles;
