@@ -452,7 +452,12 @@ export default function Profile() {
                 <TouchableOpacity style={styles.settingItem}>
                   <Text style={styles.settingTitle}>Privacy Policy</Text>
                 </TouchableOpacity>
-              </View>
+
+                {/* Footer */}
+                <View style={styles.footerContent}>
+                  <Text style={styles.footerText}>Made with <Heart size={14} color="#EF4444" fill="#EF4444" /> by Archie Albarico</Text>
+                </View>
+              </View>           
             </ScrollView>
           </View>
         </View>
