@@ -34,13 +34,13 @@ const PROFILE_STORAGE_KEY = '@user_profile';
 // Generate a random profile name
 const generateRandomName = (): string => {
   const firstNames = [
-    'Alex', 'Jordan', 'Casey', 'Riley', 'Avery', 'Morgan', 'Quinn', 'Sage', 'River', 'Emery',
-    'Phoenix', 'Rowan', 'Blake', 'Cameron', 'Ellis', 'Finley', 'Harper', 'Indigo', 'Justice', 'Kai'
+    'Cocoa', 'Caramel', 'Nougat', 'Pixel', 'Zephyr', 'Wisp', 'Glimmer', 'Echo', 'Juno', 'Orion',
+    'Nebula', 'Comet', 'Stardust', 'Elara', 'Lyra', 'Calypso', 'Solstice', 'Equinox', 'Nimbus', 'Cirrus'
   ];
   
   const lastNames = [
-    'Chen', 'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez',
-    'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson'
+    'Whiskerbloom', 'Moonpaw', 'Shadowclaw', 'Stargazer', 'Riverbend', 'Sunpetal', 'Dreamweaver', 'Skyrunner', 'Frostfang', 'Silentstep',
+    'Cinderfall', 'Mistwalker', 'Thornwood', 'Silvermane', 'Quickfoot', 'Brightwing', 'Stonehelm', 'Ironheart', 'Goldleaf', 'Nightshade'
   ];
   
   const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
