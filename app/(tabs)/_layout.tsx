@@ -5,7 +5,7 @@ import { BookOpen, Plus, User } from 'lucide-react-native';
 export default function TabLayout() {
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <Tabs
         screenOptions={{
           headerShown: false,

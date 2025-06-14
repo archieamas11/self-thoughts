@@ -360,7 +360,6 @@ export default function EntryDetail() {
       </SafeAreaView>
     );
   }
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -369,7 +368,9 @@ export default function EntryDetail() {
       month: 'long',
       day: 'numeric',
     });
-  };  const handleToggleFavorite = async () => {
+  };
+  
+  const handleToggleFavorite = async () => {
     if (id) {
       try {
         await toggleEntryFavorite(id);
@@ -383,15 +384,11 @@ export default function EntryDetail() {
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
           <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>        <View style={styles.headerRight}>
+        </TouchableOpacity>        
+        <View style={styles.headerRight}>
           {hasUnsavedChanges && (
             <View style={styles.unsavedIndicator}>
               <Text style={styles.unsavedText}>•</Text>
-            </View>
-          )}
-          {isSaving && (
-            <View style={styles.savingIndicator}>
-              <Text style={styles.savingText}>Saving...</Text>
             </View>
           )}
           {/* Undo button */}
@@ -415,7 +412,8 @@ export default function EntryDetail() {
               size={24} 
               color="#6B7280"
             />
-          </TouchableOpacity>          {/* Favorite button */}
+          </TouchableOpacity>          
+          {/* Favorite button */}
           <TouchableOpacity onPress={handleToggleFavorite} style={styles.actionIcon}>
             <Heart 
               size={24} 
@@ -500,9 +498,6 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  savingIndicator: {
-    marginRight: 8,
   },
   savingText: {
     color: '#3B82F6',

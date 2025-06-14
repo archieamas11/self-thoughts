@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface ActionModalProps {
@@ -42,7 +42,7 @@ export default function ActionModal({
           <Text style={styles.actionModalTitle}>
             What do you want to do?
           </Text>
-         <Text style={styles.actionMessage}>
+          <Text style={styles.actionMessage}>
             Restoring will bring the "{entryTitle}" back to your journal, while permanently deleting it will remove it forever.
           </Text>
 
