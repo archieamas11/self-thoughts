@@ -28,10 +28,11 @@ const useUndoRedo = (initialTitle: string, initialContent: string) => {
   const [currentTitle, setCurrentTitle] = useState(initialTitle);
   const [currentContent, setCurrentContent] = useState(initialContent);
   const isUpdatingFromHistory = useRef(false);
+  const MAX_HISTORY_SIZE = 100;
 
   // Initialize history when initial values change
   useEffect(() => {
-    if (initialTitle !== '' || initialContent !== '') {
+    if (history.length === 0) {
       const initialState: HistoryState = {
         title: initialTitle,
         content: initialContent,
@@ -42,28 +43,34 @@ const useUndoRedo = (initialTitle: string, initialContent: string) => {
       setCurrentTitle(initialTitle);
       setCurrentContent(initialContent);
     }
-  }, [initialTitle, initialContent]);
-
+  }, [initialTitle, initialContent, history.length]);
   // Add a new state to history
   const addToHistory = useCallback((title: string, content: string) => {
     if (isUpdatingFromHistory.current) return;
 
-    const newState: HistoryState = {
-      title,
-      content,
-      timestamp: Date.now()
-    };
-
     setHistory(prev => {
+      // Check if this state is different from the current one
+      const currentState = prev[currentIndex];
+      if (currentState && currentState.title === title && currentState.content === content) {
+        return prev; // No change, don't add to history
+      }
+
+      const newState: HistoryState = {
+        title,
+        content,
+        timestamp: Date.now()
+      };
+
       // Remove any states after current index (for when we're not at the end)
       const newHistory = prev.slice(0, currentIndex + 1);
       newHistory.push(newState);
       
-      // Keep only last 100 states to manage memory
-      if (newHistory.length > 100) {
-        newHistory.shift();
-        setCurrentIndex(newHistory.length - 1);
-        return newHistory;
+      // Keep only last MAX_HISTORY_SIZE states to manage memory
+      if (newHistory.length > MAX_HISTORY_SIZE) {
+        const removeCount = newHistory.length - MAX_HISTORY_SIZE;
+        const trimmedHistory = newHistory.slice(removeCount);
+        setCurrentIndex(trimmedHistory.length - 1);
+        return trimmedHistory;
       }
       
       setCurrentIndex(newHistory.length - 1);
@@ -126,7 +133,8 @@ const useUndoRedo = (initialTitle: string, initialContent: string) => {
     redo,
     canUndo,
     canRedo,
-    isUpdatingFromHistory: isUpdatingFromHistory.current
+    isUpdatingFromHistory: isUpdatingFromHistory.current,
+    historySize: history.length
   };
 };
 
@@ -138,11 +146,17 @@ const useAutoSave = (
   originalTitle: string,
   originalContent: string,
   updateEntry: (id: string, updates: any) => Promise<void>,
-  delay: number = 2000
+  delay: number = 1000
 ) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastSavedRef = useRef({ title: originalTitle, content: originalContent });
+
+  // Initialize lastSavedRef when original values change
+  useEffect(() => {
+    lastSavedRef.current = { title: originalTitle, content: originalContent };
+  }, [originalTitle, originalContent]);
 
   // Check if there are unsaved changes
   useEffect(() => {
@@ -153,7 +167,7 @@ const useAutoSave = (
 
   // Debounced save function
   useEffect(() => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges && !isSaving) {
       // Clear existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -161,12 +175,15 @@ const useAutoSave = (
 
       // Set new timeout
       saveTimeoutRef.current = setTimeout(async () => {
+        setIsSaving(true);
         try {
           await updateEntry(entryId, { title, content });
           lastSavedRef.current = { title, content };
           setHasUnsavedChanges(false);
         } catch (error) {
           console.error('Auto-save failed:', error);
+        } finally {
+          setIsSaving(false);
         }
       }, delay);
     }
@@ -176,15 +193,16 @@ const useAutoSave = (
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [title, content, hasUnsavedChanges, entryId, updateEntry, delay]);
+  }, [title, content, hasUnsavedChanges, isSaving, entryId, updateEntry, delay]);
 
   // Manual save function
   const saveNow = useCallback(async () => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges && !isSaving) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
       
+      setIsSaving(true);
       try {
         await updateEntry(entryId, { title, content });
         lastSavedRef.current = { title, content };
@@ -192,11 +210,13 @@ const useAutoSave = (
       } catch (error) {
         console.error('Manual save failed:', error);
         throw error;
+      } finally {
+        setIsSaving(false);
       }
     }
-  }, [hasUnsavedChanges, title, content, entryId, updateEntry]);
+  }, [hasUnsavedChanges, isSaving, title, content, entryId, updateEntry]);
 
-  return { hasUnsavedChanges, saveNow };
+  return { hasUnsavedChanges, isSaving, saveNow };
 };
 
 export default function EntryDetail() {
@@ -206,8 +226,7 @@ export default function EntryDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const entry = entries.find(e => e.id === id);
-  
-  // Initialize undo/redo system
+    // Initialize undo/redo system
   const {
     currentTitle,
     currentContent,
@@ -218,26 +237,39 @@ export default function EntryDetail() {
     redo,
     canUndo,
     canRedo,
-    isUpdatingFromHistory
+    isUpdatingFromHistory,
+    historySize
   } = useUndoRedo(
     entry?.title || '',
     entry?.content || ''
   );
 
   // Initialize autosave system
-  const { hasUnsavedChanges, saveNow } = useAutoSave(
+  const { hasUnsavedChanges, isSaving, saveNow } = useAutoSave(
     id || '',
     currentTitle,
     currentContent,
     entry?.title || '',
     entry?.content || '',
     updateEntry,
-    3000 // 3 second delay for autosave
+    1000 // 1 second delay for autosave
   );
   // Debounced history addition to avoid too many history entries
   const debouncedAddToHistory = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const lastInteractionTime = useRef<number>(Date.now());
+  
   const addToHistoryDebounced = useCallback((title: string, content: string) => {
     if (isUpdatingFromHistory) return;
+    
+    const now = Date.now();
+    const timeSinceLastInteraction = now - lastInteractionTime.current;
+    
+    // If it's been more than 5 seconds since last interaction, immediately add to history
+    if (timeSinceLastInteraction > 5000) {
+      addToHistory(title, content);
+      lastInteractionTime.current = now;
+      return;
+    }
     
     if (debouncedAddToHistory.current) {
       clearTimeout(debouncedAddToHistory.current);
@@ -245,20 +277,24 @@ export default function EntryDetail() {
     
     debouncedAddToHistory.current = setTimeout(() => {
       addToHistory(title, content);
-    }, 500); // Add to history after 500ms of no changes
+      lastInteractionTime.current = Date.now();
+    }, 300); // Add to history after 300ms of no changes
   }, [addToHistory, isUpdatingFromHistory]);
-
   // Handle title changes
   const handleTitleChange = useCallback((text: string) => {
-    setCurrentTitle(text);
-    addToHistoryDebounced(text, currentContent);
-  }, [setCurrentTitle, addToHistoryDebounced, currentContent]);
+    if (!isUpdatingFromHistory) {
+      setCurrentTitle(text);
+      addToHistoryDebounced(text, currentContent);
+    }
+  }, [setCurrentTitle, addToHistoryDebounced, currentContent, isUpdatingFromHistory]);
 
   // Handle content changes
   const handleContentChange = useCallback((text: string) => {
-    setCurrentContent(text);
-    addToHistoryDebounced(currentTitle, text);
-  }, [setCurrentContent, addToHistoryDebounced, currentTitle]);
+    if (!isUpdatingFromHistory) {
+      setCurrentContent(text);
+      addToHistoryDebounced(currentTitle, text);
+    }
+  }, [setCurrentContent, addToHistoryDebounced, currentTitle, isUpdatingFromHistory]);
 
   // Handle undo
   const handleUndo = useCallback(() => {
@@ -277,10 +313,12 @@ export default function EntryDetail() {
       // We don't need to do anything else here
     }
   }, [redo]);
-
   // Save when screen loses focus
   useFocusEffect(
     useCallback(() => {
+      // Add current state to history when screen gains focus
+      addToHistory(currentTitle, currentContent);
+      
       return () => {
         // Save when leaving the screen
         if (hasUnsavedChanges) {
@@ -289,7 +327,7 @@ export default function EntryDetail() {
           });
         }
       };
-    }, [hasUnsavedChanges, saveNow])
+    }, [hasUnsavedChanges, saveNow, addToHistory, currentTitle, currentContent])
   );
 
   // Save when navigating back
@@ -342,11 +380,15 @@ export default function EntryDetail() {
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
           <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <View style={styles.headerRight}>
+        </TouchableOpacity>        <View style={styles.headerRight}>
           {hasUnsavedChanges && (
             <View style={styles.unsavedIndicator}>
               <Text style={styles.unsavedText}>•</Text>
+            </View>
+          )}
+          {isSaving && (
+            <View style={styles.savingIndicator}>
+              <Text style={styles.savingText}>Saving...</Text>
             </View>
           )}
           {/* Undo button */}
@@ -452,11 +494,18 @@ const styles = StyleSheet.create({
   },
   unsavedIndicator: {
     marginRight: 8,
-  },
-  unsavedText: {
+  },  unsavedText: {
     color: '#EF4444',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  savingIndicator: {
+    marginRight: 8,
+  },
+  savingText: {
+    color: '#3B82F6',
+    fontSize: 12,
+    fontWeight: '500',
   },
   actionIcon: {
     padding: 8,
