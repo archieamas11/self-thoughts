@@ -1,12 +1,12 @@
 import { Archive } from 'lucide-react-native';
 import React from 'react';
 import {
-    Animated,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface ConfirmModalProps {
