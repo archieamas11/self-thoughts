@@ -9,6 +9,7 @@ export interface JournalEntry {
   mood: string;
   moodLabel: string;
   isArchived?: boolean;
+  isFavorite?: boolean;
 }
 
 export interface UserProfile {
@@ -21,6 +22,7 @@ interface JournalContextType {
   addEntry: (entry: Omit<JournalEntry, 'id' | 'date'>) => Promise<void>;
   updateEntry: (id: string, updates: Partial<Omit<JournalEntry, 'id' | 'date'>>) => Promise<void>;
   archiveEntry: (id: string) => Promise<void>;
+  toggleFavorite: (id: string) => Promise<void>;
   isLoading: boolean;
   userProfile: UserProfile;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -119,7 +121,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
-
   const archiveEntry = async (id: string) => {
     try {
       const updatedEntries = entries.map(entry => 
@@ -134,6 +135,21 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
+
+  const toggleFavorite = async (id: string) => {
+    try {
+      const updatedEntries = entries.map(entry => 
+        entry.id === id 
+          ? { ...entry, isFavorite: !entry.isFavorite }
+          : entry
+      );
+      setEntries(updatedEntries);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      throw error;
+    }
+  };
   const updateUserProfile = async (updates: Partial<UserProfile>) => {
     try {
       const updatedProfile = { ...userProfile, ...updates };
@@ -144,13 +160,13 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
-
   return (
     <JournalContext.Provider value={{ 
       entries, 
       addEntry, 
       updateEntry, 
-      archiveEntry, 
+      archiveEntry,
+      toggleFavorite, 
       isLoading, 
       userProfile, 
       updateUserProfile 

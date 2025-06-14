@@ -13,7 +13,6 @@ import {
   Settings,
   Shield,
   Smartphone,
-  Target,
   User,
   X
 } from 'lucide-react-native';
@@ -48,7 +47,7 @@ export default function Profile() {
 
   // Calculate real statistics
   const totalEntries = entries.filter(entry => !entry.isArchived).length;
-  const favoriteEntries = entries.filter(entry => !entry.isArchived).length; // For now, assuming all entries are favorites
+  const favoriteEntries = entries.filter(entry => !entry.isArchived && entry.isFavorite).length;
   
   // Calculate this month's entries
   const currentMonth = new Date().getMonth();
@@ -103,10 +102,10 @@ export default function Profile() {
       color: '#EFF6FF',
     },
     {
-      label: 'Current Streak',
-      value: `${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`,
-      icon: <Target size={20} color="#059669" />,
-      color: '#ECFDF5',
+      label: 'This Month',
+      value: thisMonthEntries.toString(),
+      icon: <Calendar size={20} color="#7C3AED" />,
+      color: '#F3E8FF',
     },
     {
       label: 'Favorite Entries',
@@ -115,19 +114,19 @@ export default function Profile() {
       color: '#FEF2F2',
     },
     {
-      label: 'This Month',
-      value: thisMonthEntries.toString(),
-      icon: <Calendar size={20} color="#7C3AED" />,
-      color: '#F3E8FF',
+      label: 'Archived Entries',
+      value: entries.filter(entry => entry.isArchived).length.toString(),
+      icon: <Lock size={20} color="#6B7280" />,
+      color: '#F9FAFB',
     },
   ];
 
-  const achievements = [
-    { title: 'First Entry', description: 'Started your journaling journey', earned: true },
-    { title: 'Week Warrior', description: 'Wrote for 7 consecutive days', earned: true },
-    { title: 'Month Master', description: 'Completed 30 days of journaling', earned: false },
-    { title: 'Reflection Pro', description: 'Wrote 100 journal entries', earned: false },
-  ]; 
+  // const achievements = [
+  //   { title: 'First Entry', description: 'Started your journaling journey', earned: true },
+  //   { title: 'Week Warrior', description: 'Wrote for 7 consecutive days', earned: true },
+  //   { title: 'Month Master', description: 'Completed 30 days of journaling', earned: false },
+  //   { title: 'Reflection Pro', description: 'Wrote 100 journal entries', earned: false },
+  // ]; 
 
   const handleGoogleLogin = () => {
     // Mock Google login - you'll implement the real functionality later
@@ -275,10 +274,10 @@ export default function Profile() {
             "Writing helps me understand myself better and appreciate life's small moments."
           </Text>
           <View style={styles.profileStats}>
-            <View style={styles.profileStat}>
+            {/* <View style={styles.profileStat}>
               <Text style={styles.statNumber}>{Math.floor(totalEntries * 3.3)}</Text>
               <Text style={styles.statLabel}>Days Active</Text>
-            </View>
+            </View> */}
             <View style={styles.profileStat}>
               <Text style={styles.statNumber}>{totalEntries}</Text>
               <Text style={styles.statLabel}>Entries</Text>
