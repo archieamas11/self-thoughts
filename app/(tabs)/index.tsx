@@ -1,10 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Archive, Calendar, Filter, Heart, Search } from 'lucide-react-native';
+import { Calendar, Filter, Heart, Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ActionModal from '../../components/ActionModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import FilterModal from '../../components/FilterModal';
 import { useJournal } from '../../contexts/JournalContext';
 
 export default function JournalHome() {
@@ -20,9 +21,11 @@ export default function JournalHome() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'archived' | 'favorites'>('all');
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedEntryForArchive, setSelectedEntryForArchive] = useState<{ id: string; title: string } | null>(null);
-  const { entries, isLoading, archiveEntry, toggleFavorite } = useJournal();
+  const [selectedEntryForAction, setSelectedEntryForAction] = useState<{ id: string; title: string; isArchived: boolean } | null>(null);
+  const { entries, isLoading, archiveEntry, deleteEntry, updateEntry, toggleFavorite } = useJournal();
   const router = useRouter();
 
   const moodOptions = [
@@ -63,6 +66,20 @@ export default function JournalHome() {
     setShowArchiveModal(true);
   };
 
+  const handleShowActions = async (entryId: string, entryTitle: string, isArchived: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedEntryForAction({ id: entryId, title: entryTitle, isArchived });
+    setShowActionModal(true);
+  };
+
+  const handleLongPress = (entry: any) => {
+    if (entry.isArchived) {
+      handleShowActions(entry.id, entry.title, true);
+    } else {
+      handleArchiveEntry(entry.id, entry.title);
+    }
+  };
+
   const confirmArchiveEntry = async () => {
     if (selectedEntryForArchive) {
       try {
@@ -73,7 +90,35 @@ export default function JournalHome() {
         // Could add an error modal here if needed
       }
     }
+    setShowArchiveModal(false);
     setSelectedEntryForArchive(null);
+  };
+
+  const handleDeleteAction = async () => {
+    if (selectedEntryForAction) {
+      try {
+        await deleteEntry(selectedEntryForAction.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.error('Error deleting entry:', error);
+      }
+    }
+    setShowActionModal(false);
+    setSelectedEntryForAction(null);
+  };
+
+  const handleRestoreAction = async () => {
+    if (selectedEntryForAction) {
+      try {
+        // Update entry to remove archived status (restore it)
+        await updateEntry(selectedEntryForAction.id, { isArchived: false });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.error('Error restoring entry:', error);
+      }
+    }
+    setShowActionModal(false);
+    setSelectedEntryForAction(null);
   };
 
   const handleToggleFavorite = async (entryId: string) => {
@@ -175,9 +220,12 @@ export default function JournalHome() {
             filteredEntries.map((entry) => (
               <TouchableOpacity 
                 key={entry.id} 
-                style={styles.entryCard}
+                style={[
+                  styles.entryCard,
+                  entry.isArchived && styles.archivedEntryCard
+                ]}
                 onPress={() => router.push(`/entry/${entry.id}`)}
-                onLongPress={() => handleArchiveEntry(entry.id, entry.title)}
+                onLongPress={() => handleLongPress(entry)}
                 delayLongPress={300}
               >
                 <View style={styles.entryHeader}>
@@ -211,7 +259,10 @@ export default function JournalHome() {
 
       <ConfirmModal
         visible={showArchiveModal}
-        onClose={() => setShowArchiveModal(false)}
+        onClose={() => {
+          setShowArchiveModal(false);
+          setSelectedEntryForArchive(null);
+        }}
         onConfirm={confirmArchiveEntry}
         title="Archive Entry"
         message={`Are you sure you want to archive "${selectedEntryForArchive?.title}"?`}
@@ -221,77 +272,23 @@ export default function JournalHome() {
         iconColor="#EF4444"
       />
 
-      {/* Filter Modal */}
-      <Modal
+      <ActionModal
+        visible={showActionModal}
+        onClose={() => {
+          setShowActionModal(false);
+          setSelectedEntryForAction(null);
+        }}
+        entryTitle={selectedEntryForAction?.title || ''}
+        onRestore={handleRestoreAction}
+        onDelete={handleDeleteAction}
+      />
+
+      <FilterModal
         visible={showFilterModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowFilterModal(false)}
-        >
-          <View style={styles.filterModal}>
-            <Text style={styles.filterModalTitle}>Filter Entries</Text>
-            
-            <TouchableOpacity
-              style={[
-                styles.filterModalButton,
-                filterType === 'all' && styles.activeFilterModalButton,
-              ]}
-              onPress={() => {
-                setFilterType('all');
-                setShowFilterModal(false);
-              }}
-            >
-              <Text style={[
-                styles.filterModalButtonText,
-                filterType === 'all' && styles.activeFilterModalButtonText
-              ]}>All Entries</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.filterModalButton,
-                filterType === 'favorites' && styles.activeFilterModalButton,
-              ]}
-              onPress={() => {
-                setFilterType('favorites');
-                setShowFilterModal(false);
-              }}
-            >
-              <View style={styles.filterModalButtonContent}>
-                <Heart size={18} color={filterType === 'favorites' ? '#FFFFFF' : '#EF4444'} />
-                <Text style={[
-                  styles.filterModalButtonText,
-                  filterType === 'favorites' && styles.activeFilterModalButtonText
-                ]}>Favorites</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.filterModalButton,
-                filterType === 'archived' && styles.activeFilterModalButton,
-              ]}
-              onPress={() => {
-                setFilterType('archived');
-                setShowFilterModal(false);
-              }}
-            >
-              <View style={styles.filterModalButtonContent}>
-                <Archive size={18} color={filterType === 'archived' ? '#FFFFFF' : '#6B7280'} />
-                <Text style={[
-                  styles.filterModalButtonText,
-                  filterType === 'archived' && styles.activeFilterModalButtonText
-                ]}>Archived</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setShowFilterModal(false)}
+        filterType={filterType}
+        onFilterSelect={setFilterType}
+      />
     </View>
   );
 }
@@ -333,10 +330,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
-    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    minHeight: 44,
   },
   searchIcon: {
     marginRight: 12,
@@ -345,6 +342,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#111827',
+    textAlignVertical: 'center',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -410,6 +408,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08, // Changed from 0.1
     shadowRadius: 2.62, // Changed from 3.84
     elevation: 3, // Changed from 5
+  },
+  archivedEntryCard: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
   },
   entryHeader: {
     flexDirection: 'row',
@@ -481,62 +483,5 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 24,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterModal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '80%',
-    maxWidth: 300,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  filterModalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  filterModalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-    marginBottom: 8,
-  },
-  activeFilterModalButton: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
-  },
-  filterModalButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  filterModalButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  activeFilterModalButtonText: {
-    color: '#FFFFFF',
   },
 });

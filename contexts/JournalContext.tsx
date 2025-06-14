@@ -22,6 +22,7 @@ interface JournalContextType {
   addEntry: (entry: Omit<JournalEntry, 'id' | 'date'>) => Promise<void>;
   updateEntry: (id: string, updates: Partial<Omit<JournalEntry, 'id' | 'date'>>) => Promise<void>;
   archiveEntry: (id: string) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
   isLoading: boolean;
   userProfile: UserProfile;
@@ -120,8 +121,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       console.error('Error updating entry:', error);
       throw error;
     }
-  };
-  const archiveEntry = async (id: string) => {
+  };  const archiveEntry = async (id: string) => {
     try {
       const updatedEntries = entries.map(entry => 
         entry.id === id 
@@ -132,6 +132,17 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     } catch (error) {
       console.error('Error archiving entry:', error);
+      throw error;
+    }
+  };
+
+  const deleteEntry = async (id: string) => {
+    try {
+      const updatedEntries = entries.filter(entry => entry.id !== id);
+      setEntries(updatedEntries);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+    } catch (error) {
+      console.error('Error deleting entry:', error);
       throw error;
     }
   };
@@ -159,13 +170,13 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       console.error('Error updating user profile:', error);
       throw error;
     }
-  };
-  return (
+  };  return (
     <JournalContext.Provider value={{ 
       entries, 
       addEntry, 
       updateEntry, 
       archiveEntry,
+      deleteEntry,
       toggleFavorite, 
       isLoading, 
       userProfile, 
