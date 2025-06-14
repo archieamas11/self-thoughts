@@ -22,13 +22,14 @@ import {
   Image,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import { useJournal } from '../../contexts/JournalContext';
+import styles from '../../styles/profileTab.styles';
 
 interface Stat {
   label: string;
@@ -40,6 +41,7 @@ interface Stat {
 export default function Profile() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [editNameModalVisible, setEditNameModalVisible] = useState(false);
+  const [profilePictureModalVisible, setProfilePictureModalVisible] = useState(false);
   const [tempName, setTempName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -168,62 +170,52 @@ export default function Profile() {
   };
 
   const handleProfilePicturePress = async () => {
-    Alert.alert(
-      'Profile Picture',
-      'Choose an option',
-      [
-        {
-          text: 'Take Photo',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission denied', 'Sorry, we need camera permissions to take a photo.');
-              return;
-            }
-            
-            const result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
+    setProfilePictureModalVisible(true);
+  };
 
-            if (!result.canceled && result.assets[0]) {
-              await updateUserProfile({ profilePicture: result.assets[0].uri });
-            }
-          },
-        },
-        {
-          text: 'Choose from Gallery',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission denied', 'Sorry, we need gallery permissions to choose a photo.');
-              return;
-            }
+  const handleTakePhoto = async () => {
+    setProfilePictureModalVisible(false);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission denied', 'Sorry, we need camera permissions to take a photo.');
+      return;
+    }
+    
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
 
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
+    if (!result.canceled && result.assets[0]) {
+      await updateUserProfile({ profilePicture: result.assets[0].uri });
+    }
+  };
 
-            if (!result.canceled && result.assets[0]) {
-              await updateUserProfile({ profilePicture: result.assets[0].uri });
-            }
-          },
-        },
-        {
-          text: 'Remove Picture',
-          style: 'destructive',
-          onPress: async () => {
-            await updateUserProfile({ profilePicture: undefined });
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const handleChooseFromGallery = async () => {
+    setProfilePictureModalVisible(false);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission denied', 'Sorry, we need gallery permissions to choose a photo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await updateUserProfile({ profilePicture: result.assets[0].uri });
+    }
+  };
+
+  const handleRemovePicture = async () => {
+    setProfilePictureModalVisible(false);
+    await updateUserProfile({ profilePicture: undefined });
   };
 
   const handleEditName = () => {
@@ -466,6 +458,47 @@ export default function Profile() {
         </View>
       </Modal>
 
+      {/* Profile Picture Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={profilePictureModalVisible}
+        onRequestClose={() => setProfilePictureModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setProfilePictureModalVisible(false)}>
+          <View style={styles.profilePictureOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.profilePictureModal}>
+                <Text style={styles.profilePictureTitle}>Profile Picture</Text>
+                <Text style={styles.profilePictureSubtitle}>Choose an option</Text>
+                
+                <TouchableOpacity style={styles.profilePictureOption} onPress={handleTakePhoto}>
+                  <Camera size={20} color="#3B82F6" />
+                  <Text style={styles.profilePictureOptionText}>Take Photo</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.profilePictureOption} onPress={handleChooseFromGallery}>
+                  <User size={20} color="#3B82F6" />
+                  <Text style={styles.profilePictureOptionText}>Choose from Gallery</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.profilePictureOption, styles.destructiveOption]} onPress={handleRemovePicture}>
+                  <X size={20} color="#EF4444" />
+                  <Text style={[styles.profilePictureOptionText, styles.destructiveOptionText]}>Remove Picture</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.profilePictureCancelButton} 
+                  onPress={() => setProfilePictureModalVisible(false)}
+                >
+                  <Text style={styles.profilePictureCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       {/* Edit Name Modal */}
       <Modal
         animationType="slide"
@@ -521,508 +554,3 @@ export default function Profile() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    margin: 24,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  profileImageContainer: {
-    marginBottom: 16,
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  profileImageStyle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  profileNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  editNameButton: {
-    marginLeft: 8,
-    padding: 4,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  profileBio: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-    fontStyle: 'italic',
-  },
-  profileStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  profileStat: {
-    alignItems: 'center',
-  },
-   archivedStat: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  section: {
-    marginHorizontal: 24,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statIcon: {
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  achievementsContainer: {
-    gap: 12,
-  },
-  achievementCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  achievementIcon: {
-    marginRight: 12,
-  },
-  achievementInfo: {
-    flex: 1,
-  },
-  achievementTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  unearned: {
-    color: '#9CA3AF',
-  },
-  achievementDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-
-  actionsContainer: {
-    gap: 12,
-  },
-  actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  actionContent: { // Added style for text container in security card
-    marginLeft: 12,
-    flex: 1,
-  },
-  actionTitle: { // Added style for the title in security card
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  actionSubtitle: { // Added style for the subtitle in security card
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  actionText: {
-    fontSize: 16,
-    color: '#111827',
-    marginLeft: 12,
-    fontWeight: '500',
-  },
-  
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  modalContent: {
-    padding: 24,
-  },
-  modalSection: {
-    marginBottom: 32,
-  },
-  modalSectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  
-  // Login styles
-  loginPrompt: {
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  loginIcon: {
-    marginBottom: 16,
-  },
-  loginTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  loginDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  googleLoginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#4285F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  googleIconText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  googleLoginText: {
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  benefits: {
-    alignSelf: 'stretch',
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  benefitText: {
-    fontSize: 14,
-    color: '#059669',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  
-  // Logged in styles
-  loggedInContainer: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#DBEAFE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userEmail: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  syncStatus: {
-    fontSize: 14,
-    color: '#059669',
-    fontWeight: '500',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  logoutText: {
-    fontSize: 14,
-    color: '#EF4444',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  
-  // Settings item styles
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  settingContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  settingDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  
-  // About styles
-  aboutItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    marginBottom: 12,
-  },
-  aboutLabel: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  aboutValue: {
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '600',
-  },
-  
-  // Edit Name Modal styles
-  editNameModal: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '50%',
-  },
-  editNameContent: {
-    padding: 24,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  nameInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#F9FAFB',
-    marginBottom: 24,
-  },
-  editNameButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#D1D5DB',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  saveButtonTextDisabled: {
-    color: '#9CA3AF',
-  },
-});
