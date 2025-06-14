@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Calendar, Heart, Search } from 'lucide-react-native';
+import { Archive, Calendar, Filter, Heart, Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,9 +18,11 @@ import { useJournal } from '../../contexts/JournalContext';
 export default function JournalHome() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<'all' | 'archived' | 'favorites'>('all');
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedEntryForArchive, setSelectedEntryForArchive] = useState<{ id: string; title: string } | null>(null);
-  const { entries, isLoading, archiveEntry } = useJournal();
+  const { entries, isLoading, archiveEntry, toggleFavorite } = useJournal();
   const router = useRouter();
 
   const moodOptions = [
@@ -32,8 +35,10 @@ export default function JournalHome() {
   ];
 
   const filteredEntries = entries.filter(entry => {
-    // Exclude archived entries from main view
-    if (entry.isArchived) return false;
+    // Filter by type first
+    if (filterType === 'archived' && !entry.isArchived) return false;
+    if (filterType === 'favorites' && !entry.isFavorite) return false;
+    if (filterType === 'all' && entry.isArchived) return false;
     
     const matchesSearchQuery =
       entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,6 +76,15 @@ export default function JournalHome() {
     setSelectedEntryForArchive(null);
   };
 
+  const handleToggleFavorite = async (entryId: string) => {
+    try {
+      await toggleFavorite(entryId);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
   return (
     // My journal header
     <View style={styles.container}>
@@ -81,16 +95,26 @@ export default function JournalHome() {
         </Text>
       </View>
 
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <Search size={20} color="#6B7280" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search your entries..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#9CA3AF"
-        />
+      {/* Search bar and filters */}
+      <View style={styles.searchAndFilterContainer}>
+        <View style={styles.searchContainer}>
+          <Search size={20} color="#6B7280" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search your entries..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#9CA3AF"
+          />
+        </View>
+
+        {/* Filter button */}
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Filter size={20} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
       {/* Mood Filter */}
@@ -168,8 +192,15 @@ export default function JournalHome() {
                   {entry.content}
                 </Text>
                 <View style={styles.entryFooter}>
-                  <TouchableOpacity style={styles.favoriteButton}>
-                    <Heart size={16} color="#EF4444" />
+                  <TouchableOpacity 
+                    style={styles.favoriteButton}
+                    onPress={() => handleToggleFavorite(entry.id)}
+                  >
+                    <Heart 
+                      size={16} 
+                      color="#EF4444" 
+                      fill={entry.isFavorite ? '#EF4444' : 'none'}
+                    />
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -189,6 +220,78 @@ export default function JournalHome() {
         confirmColor="#EF4444"
         iconColor="#EF4444"
       />
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowFilterModal(false)}
+        >
+          <View style={styles.filterModal}>
+            <Text style={styles.filterModalTitle}>Filter Entries</Text>
+            
+            <TouchableOpacity
+              style={[
+                styles.filterModalButton,
+                filterType === 'all' && styles.activeFilterModalButton,
+              ]}
+              onPress={() => {
+                setFilterType('all');
+                setShowFilterModal(false);
+              }}
+            >
+              <Text style={[
+                styles.filterModalButtonText,
+                filterType === 'all' && styles.activeFilterModalButtonText
+              ]}>All Entries</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterModalButton,
+                filterType === 'favorites' && styles.activeFilterModalButton,
+              ]}
+              onPress={() => {
+                setFilterType('favorites');
+                setShowFilterModal(false);
+              }}
+            >
+              <View style={styles.filterModalButtonContent}>
+                <Heart size={18} color={filterType === 'favorites' ? '#FFFFFF' : '#EF4444'} />
+                <Text style={[
+                  styles.filterModalButtonText,
+                  filterType === 'favorites' && styles.activeFilterModalButtonText
+                ]}>Favorites</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterModalButton,
+                filterType === 'archived' && styles.activeFilterModalButton,
+              ]}
+              onPress={() => {
+                setFilterType('archived');
+                setShowFilterModal(false);
+              }}
+            >
+              <View style={styles.filterModalButtonContent}>
+                <Archive size={18} color={filterType === 'archived' ? '#FFFFFF' : '#6B7280'} />
+                <Text style={[
+                  styles.filterModalButtonText,
+                  filterType === 'archived' && styles.activeFilterModalButtonText
+                ]}>Archived</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -217,14 +320,20 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
+  searchAndFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
-    marginVertical: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -237,8 +346,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 6,
+    flexShrink: 0,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    minWidth: 44,
+    height: 44,
+  },
   moodFilterContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16, // Reduced from 24
     paddingVertical: 10,
   },
   moodFilterContent: {
@@ -266,7 +393,7 @@ const styles = StyleSheet.create({
   },
   entriesContainer: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16, // Reduced from 24
   },
   entryCard: {
     backgroundColor: '#FFFFFF',
@@ -354,5 +481,62 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    maxWidth: 300,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  filterModalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
+  },
+  activeFilterModalButton: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  filterModalButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterModalButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  activeFilterModalButtonText: {
+    color: '#FFFFFF',
   },
 });

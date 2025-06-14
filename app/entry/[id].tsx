@@ -222,8 +222,7 @@ const useAutoSave = (
 export default function EntryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { entries, updateEntry } = useJournal();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { entries, updateEntry, toggleFavorite: toggleEntryFavorite } = useJournal();
 
   const entry = entries.find(e => e.id === id);
     // Initialize undo/redo system
@@ -370,10 +369,14 @@ export default function EntryDetail() {
       month: 'long',
       day: 'numeric',
     });
-  };
-
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
+  };  const handleToggleFavorite = async () => {
+    if (id) {
+      try {
+        await toggleEntryFavorite(id);
+      } catch (error) {
+        console.error('Error toggling favorite:', error);
+      }
+    }
   };
   return (
     <SafeAreaView style={styles.container}>
@@ -412,13 +415,12 @@ export default function EntryDetail() {
               size={24} 
               color="#6B7280"
             />
-          </TouchableOpacity>
-          {/* Favorite button */}
-          <TouchableOpacity onPress={toggleFavorite} style={styles.actionIcon}>
+          </TouchableOpacity>          {/* Favorite button */}
+          <TouchableOpacity onPress={handleToggleFavorite} style={styles.actionIcon}>
             <Heart 
               size={24} 
-              color={isFavorite ? "#EF4444" : "#6B7280"} 
-              fill={isFavorite ? "#EF4444" : "none"}
+              color={entry?.isFavorite ? "#EF4444" : "#6B7280"} 
+              fill={entry?.isFavorite ? "#EF4444" : "none"}
             />
           </TouchableOpacity>
         </View>
