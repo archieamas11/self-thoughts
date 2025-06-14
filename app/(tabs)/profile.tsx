@@ -287,6 +287,10 @@ export default function Profile() {
               <Text style={styles.statNumber}>{favoriteEntries}</Text>
               <Text style={styles.statLabel}>Favorites</Text>
             </View>
+            <View style={styles.archivedStat}>
+              <Text style={styles.statNumber}>{entries.filter(entry => entry.isArchived).length}</Text>
+              <Text style={styles.statLabel}>Archived</Text>
+            </View>
           </View>
         </View>
 
@@ -625,6 +629,9 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   profileStat: {
+    alignItems: 'center',
+  },
+   archivedStat: {
     alignItems: 'center',
   },
   statNumber: {
