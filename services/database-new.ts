@@ -285,6 +285,7 @@ class DatabaseService {
     if (profile) {
       return {
         name: profile.name,
+        bio: profile.bio || '',
         profilePicture: profile.profilePicture,
       };
     }

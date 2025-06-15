@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
   },
-  cameraIcon: {
+  editIcon: {
     position: 'absolute',
     bottom: 2,
     right: 2,
@@ -96,7 +96,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
-    fontStyle: 'italic',
   },
   profileStats: {
     flexDirection: 'row',
@@ -220,8 +219,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontWeight: '500',
   },
-  
-  // Modal styles
+    // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -580,6 +578,170 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  // Edit Profile Modal styles (unified modal)
+  editProfileModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '95%',
+    minHeight: '70%',
+    flex: 1,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 16,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  activeTab: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#3B82F6',
+  },
+  tabContent: {
+    flex: 1,
+    padding: 24,
+  },
+  
+  // Picture Tab styles
+  pictureTab: {
+    flex: 1,
+  },
+  currentProfileContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingVertical: 24,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+  },
+  currentProfilePicture: {
+    width: 90,
+    height: 90,
+    borderRadius: 60,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: '#E5E7EB',
+  },
+  currentProfileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 57,
+  },
+  currentPictureLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  pictureOptions: {
+    gap: 12,
+  },
+  pictureOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  optionContent: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  optionDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  destructiveText: {
+    color: '#EF4444',
+  },
+    // Name & Bio Tab styles
+  nameTab: {
+    flex: 1,
+    paddingBottom: 80, // Add space for action buttons
+  },
+  bioTab: {
+    flex: 1,
+    paddingBottom: 80, // Add space for action buttons
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  bioInput: {
+    height: 120,
+    textAlignVertical: 'top',
+    paddingTop: 16,
+  },  inputHelper: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 24,
+    paddingLeft: 4,
+  },  
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingVertical: 16,
+    paddingBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });
 
