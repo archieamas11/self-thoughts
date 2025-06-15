@@ -2,7 +2,8 @@
   "expo": {
     "name": "self-thoughts",
     "slug": "self-thoughts",
-    "version": "1.0.0",
+    "version": "1.2.0",
+    "description": "A personal journaling app to track your thoughts and feelings.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -26,7 +27,8 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

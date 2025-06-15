@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { databaseService } from '../services/database';
 
 export interface JournalEntry {
   id: string;
@@ -31,9 +31,6 @@ interface JournalContextType {
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
 
-const STORAGE_KEY = '@journal_entries';
-const PROFILE_STORAGE_KEY = '@user_profile';
-
 // Generate a random profile name
 const generateRandomName = (): string => {
   const firstNames = [
@@ -57,42 +54,39 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile>({ name: '' });
 
-  // Load entries and profile from AsyncStorage on component mount
+  // Initialize database and load data on component mount
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+    initializeAndLoadData();
+  }, []);  const initializeAndLoadData = async () => {
     try {
-      // Load entries
-      const storedEntries = await AsyncStorage.getItem(STORAGE_KEY);
-      if (storedEntries) {
-        setEntries(JSON.parse(storedEntries));
-      } else {
-        setEntries([]);
-      }
+      // Initialize the database (includes migration from AsyncStorage)
+      await databaseService.init();
+      
+      // Load entries from SQLite
+      const loadedEntries = await databaseService.getAllEntries();
+      setEntries(loadedEntries);
 
       // Load or generate user profile
-      const storedProfile = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
-      if (storedProfile) {
-        setUserProfile(JSON.parse(storedProfile));
-      } else {
+      let profile = await databaseService.getUserProfile();
+      
+      if (!profile) {
         // Generate random name for first-time users
         const randomName = generateRandomName();
-        const newProfile: UserProfile = { name: randomName };
-        setUserProfile(newProfile);
-        await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(newProfile));
+        profile = { name: randomName };
+        await databaseService.insertUserProfile(profile);
       }
+      
+      setUserProfile(profile);
+      console.log('✅ Database initialization complete!');
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error initializing data:', error);
       setEntries([]);
       // Generate fallback name if loading fails
       setUserProfile({ name: generateRandomName() });
     } finally {
       setIsLoading(false);
     }
-  };
-  const addEntry = async (newEntry: Omit<JournalEntry, 'id' | 'date'>) => {
+  };  const addEntry = async (newEntry: Omit<JournalEntry, 'id' | 'date'>) => {
     try {
       const entry: JournalEntry = {
         ...newEntry,
@@ -100,36 +94,50 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
       };
 
+      // Insert into database
+      await databaseService.insertEntry(entry);
+
+      // Update local state
       const updatedEntries = [entry, ...entries]; // Add new entry at the beginning
       setEntries(updatedEntries);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+      
+      console.log('✅ Entry saved successfully');
     } catch (error) {
-      console.error('Error saving entry:', error);
+      console.error('❌ Error saving entry:', error);
       throw error;
     }
   };
+
   const updateEntry = async (id: string, updates: Partial<Omit<JournalEntry, 'id' | 'date'>>) => {
     try {
+      // Update in database
+      await databaseService.updateEntry(id, updates);
+      
+      // Update local state
       const updatedEntries = entries.map(entry => 
         entry.id === id 
           ? { ...entry, ...updates }
           : entry
       );
       setEntries(updatedEntries);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     } catch (error) {
       console.error('Error updating entry:', error);
       throw error;
     }
-  };  const archiveEntry = async (id: string) => {
+  };
+
+  const archiveEntry = async (id: string) => {
     try {
+      // Update in database
+      await databaseService.updateEntry(id, { isArchived: true });
+      
+      // Update local state
       const updatedEntries = entries.map(entry => 
         entry.id === id 
           ? { ...entry, isArchived: true }
           : entry
       );
       setEntries(updatedEntries);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     } catch (error) {
       console.error('Error archiving entry:', error);
       throw error;
@@ -138,9 +146,12 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   const deleteEntry = async (id: string) => {
     try {
+      // Delete from database
+      await databaseService.deleteEntry(id);
+      
+      // Update local state
       const updatedEntries = entries.filter(entry => entry.id !== id);
       setEntries(updatedEntries);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     } catch (error) {
       console.error('Error deleting entry:', error);
       throw error;
@@ -149,28 +160,43 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   const toggleFavorite = async (id: string) => {
     try {
+      const entry = entries.find(e => e.id === id);
+      if (!entry) return;
+
+      const newFavoriteStatus = !entry.isFavorite;
+      
+      // Update in database
+      await databaseService.updateEntry(id, { isFavorite: newFavoriteStatus });
+      
+      // Update local state
       const updatedEntries = entries.map(entry => 
         entry.id === id 
-          ? { ...entry, isFavorite: !entry.isFavorite }
+          ? { ...entry, isFavorite: newFavoriteStatus }
           : entry
       );
       setEntries(updatedEntries);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     } catch (error) {
       console.error('Error toggling favorite:', error);
       throw error;
     }
   };
+
   const updateUserProfile = async (updates: Partial<UserProfile>) => {
     try {
       const updatedProfile = { ...userProfile, ...updates };
+      
+      // Update in database
+      await databaseService.updateUserProfile(updates);
+      
+      // Update local state
       setUserProfile(updatedProfile);
-      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
     } catch (error) {
       console.error('Error updating user profile:', error);
       throw error;
     }
-  };  return (
+  };
+
+  return (
     <JournalContext.Provider value={{ 
       entries, 
       addEntry, 
