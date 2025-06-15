@@ -63,6 +63,7 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS user_profile (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         name TEXT NOT NULL,
+        bio TEXT NOT NULL,
         profilePicture TEXT,
         createdAt INTEGER DEFAULT (strftime('%s', 'now')),
         updatedAt INTEGER DEFAULT (strftime('%s', 'now'))
@@ -295,6 +296,7 @@ class DatabaseService {
     if (profile) {
       return {
         name: profile.name,
+        bio: profile.bio || '',
         profilePicture: profile.profilePicture,
       };
     }

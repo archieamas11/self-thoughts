@@ -64,8 +64,9 @@ async function testDatabase() {
     let profile = await databaseService.getUserProfile();
     if (!profile) {
       console.log('👤 Creating default user profile...');
-      profile = { name: 'Journal Writer' };
+      profile = { name: 'Journal Writer', bio: '' };
       await databaseService.insertUserProfile(profile);
+
       console.log('✅ User profile created');
     }
     

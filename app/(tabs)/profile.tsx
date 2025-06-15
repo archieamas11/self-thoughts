@@ -1,6 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
 import {
-  Bell,
   BookOpen,
   Calendar,
   Camera,
@@ -20,12 +19,13 @@ import React, { useState } from 'react';
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View
 } from 'react-native';
 import { useJournal } from '../../contexts/JournalContext';
@@ -38,14 +38,17 @@ interface Stat {
   color: string;
 }
 
-export default function Profile() {
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-  const [editNameModalVisible, setEditNameModalVisible] = useState(false);
-  const [profilePictureModalVisible, setProfilePictureModalVisible] = useState(false);
+export default function Profile() {  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'picture' | 'name' | 'bio'>('picture');
   const [tempName, setTempName] = useState('');
+  const [tempBio, setTempBio] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const { entries, userProfile, updateUserProfile } = useJournal();
+
+  const defaultBio = "Writing helps me understand myself better and appreciate life's small moments.";
+  const version = "1.2.0";
 
   // Calculate real statistics
   const totalEntries = entries.filter(entry => !entry.isArchived).length;
@@ -168,13 +171,15 @@ export default function Profile() {
       ]
     );
   };
-
-  const handleProfilePicturePress = async () => {
-    setProfilePictureModalVisible(true);
+  const handleEditProfilePress = async () => {
+    setTempName(userProfile.name);
+    setTempBio(userProfile.bio);
+    setActiveTab('picture');
+    setEditProfileModalVisible(true);
   };
 
   const handleTakePhoto = async () => {
-    setProfilePictureModalVisible(false);
+    setEditProfileModalVisible(false);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission denied', 'Sorry, we need camera permissions to take a photo.');
@@ -194,7 +199,7 @@ export default function Profile() {
   };
 
   const handleChooseFromGallery = async () => {
-    setProfilePictureModalVisible(false);
+    setEditProfileModalVisible(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission denied', 'Sorry, we need gallery permissions to choose a photo.');
@@ -214,21 +219,21 @@ export default function Profile() {
   };
 
   const handleRemovePicture = async () => {
-    setProfilePictureModalVisible(false);
+    setEditProfileModalVisible(false);
     await updateUserProfile({ profilePicture: undefined });
-  };
-
-  const handleEditName = () => {
-    setTempName(userProfile.name);
-    setEditNameModalVisible(true);
   };
 
   const handleSaveName = async () => {
     if (tempName.trim()) {
       await updateUserProfile({ name: tempName.trim() });
-      setEditNameModalVisible(false);
+      setEditProfileModalVisible(false);
     }
   }; 
+
+  const handleSaveBio = async () => {
+    await updateUserProfile({ bio: tempBio.trim() || defaultBio });
+    setEditProfileModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -245,26 +250,25 @@ export default function Profile() {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
           <View style={styles.profileImageContainer}>
-            <TouchableOpacity style={styles.profileImage} onPress={handleProfilePicturePress}>
+            <TouchableOpacity style={styles.profileImage} onPress={handleEditProfilePress}>
               {userProfile.profilePicture ? (
                 <Image source={{ uri: userProfile.profilePicture }} style={styles.profileImageStyle} />
               ) : (
                 <User size={40} color="#6B7280" />
               )}
-              <View style={styles.cameraIcon}>
-                <Camera size={16} color="#FFFFFF" />
+              <View style={styles.editIcon}>
+                <Edit size={12} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
           </View>
           <View style={styles.profileNameContainer}>
             <Text style={styles.profileName}>{userProfile.name}</Text>
-            <TouchableOpacity style={styles.editNameButton} onPress={handleEditName}>
-              <Edit size={16} color="#6B7280" />
-            </TouchableOpacity>
           </View>
-          <Text style={styles.profileBio}>
-            "Writing helps me understand myself better and appreciate life's small moments."
-          </Text>
+          <TouchableOpacity>
+            <Text style={styles.profileBio}>
+              "{userProfile.bio || defaultBio}"
+            </Text>
+          </TouchableOpacity>
           <View style={styles.profileStats}>
             {/* <View style={styles.profileStat}>
               <Text style={styles.statNumber}>{Math.floor(totalEntries * 3.3)}</Text>
@@ -413,18 +417,10 @@ export default function Profile() {
                     <Text style={styles.settingDescription}>Require passcode or biometric to open app</Text>
                   </View>
                 </TouchableOpacity>
-
-                <TouchableOpacity style={styles.settingItem}>
-                  <Shield size={20} color="#3B82F6" />
-                  <View style={styles.settingContent}>
-                    <Text style={styles.settingTitle}>Data Export</Text>
-                    <Text style={styles.settingDescription}>Download your journal entries</Text>
-                  </View>
-                </TouchableOpacity>
               </View>
 
               {/* Notifications Section */}
-              <View style={styles.modalSection}>
+              {/* <View style={styles.modalSection}>
                 <Text style={styles.modalSectionTitle}>Notifications</Text>
                 
                 <TouchableOpacity style={styles.settingItem}>
@@ -434,15 +430,13 @@ export default function Profile() {
                     <Text style={styles.settingDescription}>Get reminded to write in your journal</Text>
                   </View>
                 </TouchableOpacity>
-              </View>
+              </View> */}
 
               {/* About Section */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>About</Text>
-                
+              <View style={styles.modalSection}>                
                 <View style={styles.aboutItem}>
                   <Text style={styles.aboutLabel}>Version</Text>
-                  <Text style={styles.aboutValue}>1.0.0</Text>
+                  <Text style={styles.aboutValue}>{version}</Text>
                 </View>
                 
                 <TouchableOpacity style={styles.settingItem}>
@@ -461,100 +455,188 @@ export default function Profile() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
-
-      {/* Profile Picture Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={profilePictureModalVisible}
-        onRequestClose={() => setProfilePictureModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setProfilePictureModalVisible(false)}>
-          <View style={styles.profilePictureOverlay}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <View style={styles.profilePictureModal}>
-                <Text style={styles.profilePictureTitle}>Profile Picture</Text>
-                <Text style={styles.profilePictureSubtitle}>Choose an option</Text>
-                
-                <TouchableOpacity style={styles.profilePictureOption} onPress={handleTakePhoto}>
-                  <Camera size={20} color="#3B82F6" />
-                  <Text style={styles.profilePictureOptionText}>Take Photo</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.profilePictureOption} onPress={handleChooseFromGallery}>
-                  <User size={20} color="#3B82F6" />
-                  <Text style={styles.profilePictureOptionText}>Choose from Gallery</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.profilePictureOption, styles.destructiveOption]} onPress={handleRemovePicture}>
-                  <X size={20} color="#EF4444" />
-                  <Text style={[styles.profilePictureOptionText, styles.destructiveOptionText]}>Remove Picture</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.profilePictureCancelButton} 
-                  onPress={() => setProfilePictureModalVisible(false)}
-                >
-                  <Text style={styles.profilePictureCancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Edit Name Modal */}
+      </Modal>        {/* Edit Profile Modal */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={editNameModalVisible}
-        onRequestClose={() => setEditNameModalVisible(false)}
+        visible={editProfileModalVisible}
+        onRequestClose={() => setEditProfileModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.editNameModal}>
+        <KeyboardAvoidingView 
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.editProfileModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Name</Text>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setEditNameModalVisible(false)}
+                onPress={() => setEditProfileModalVisible(false)}
               >
                 <X size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.editNameContent}>
-              <Text style={styles.inputLabel}>Display Name</Text>
-              <TextInput
-                style={styles.nameInput}
-                value={tempName}
-                onChangeText={setTempName}
-                placeholder="Enter your name"
-                autoFocus
-                maxLength={50}
-              />
+            {/* Tab Navigation */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'picture' && styles.activeTab]}
+                onPress={() => setActiveTab('picture')}
+              >
+                <Camera size={20} color={activeTab === 'picture' ? '#3B82F6' : '#6B7280'} />
+                <Text style={[styles.tabText, activeTab === 'picture' && styles.activeTabText]}>
+                  Picture
+                </Text>
+              </TouchableOpacity>
               
-              <View style={styles.editNameButtons}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setEditNameModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[styles.saveButton, !tempName.trim() && styles.saveButtonDisabled]}
-                  onPress={handleSaveName}
-                  disabled={!tempName.trim()}
-                >
-                  <Text style={[styles.saveButtonText, !tempName.trim() && styles.saveButtonTextDisabled]}>
-                    Save
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'name' && styles.activeTab]}
+                onPress={() => setActiveTab('name')}
+              >
+                <User size={20} color={activeTab === 'name' ? '#3B82F6' : '#6B7280'} />
+                <Text style={[styles.tabText, activeTab === 'name' && styles.activeTabText]}>
+                  Name
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'bio' && styles.activeTab]}
+                onPress={() => setActiveTab('bio')}
+              >
+                <Edit size={20} color={activeTab === 'bio' ? '#3B82F6' : '#6B7280'} />
+                <Text style={[styles.tabText, activeTab === 'bio' && styles.activeTabText]}>
+                  Bio
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            <View style={styles.tabContent}>
+              {/* Picture Tab */}
+              {activeTab === 'picture' && (
+                <View style={styles.pictureTab}>
+                  <View style={styles.currentProfileContainer}>
+                    <View style={styles.currentProfilePicture}>
+                      {userProfile.profilePicture ? (
+                        <Image source={{ uri: userProfile.profilePicture }} style={styles.currentProfileImage} />
+                      ) : (
+                        <User size={60} color="#6B7280" />
+                      )}
+                    </View>
+                    <Text style={styles.currentPictureLabel}>Current Profile Picture</Text>
+                  </View>
+                  
+                  <View style={styles.pictureOptions}>
+                    <TouchableOpacity style={styles.pictureOption} onPress={handleTakePhoto}>
+                      <View style={styles.optionIcon}>
+                        <Camera size={24} color="#3B82F6" />
+                      </View>
+                      <View style={styles.optionContent}>
+                        <Text style={styles.optionTitle}>Take Photo</Text>
+                        <Text style={styles.optionDescription}>Use camera to take a new photo</Text>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.pictureOption} onPress={handleChooseFromGallery}>
+                      <View style={styles.optionIcon}>
+                        <BookOpen size={24} color="#3B82F6" />
+                      </View>
+                      <View style={styles.optionContent}>
+                        <Text style={styles.optionTitle}>Choose from Gallery</Text>
+                        <Text style={styles.optionDescription}>Select an existing photo</Text>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    {userProfile.profilePicture && (
+                      <TouchableOpacity style={[styles.pictureOption, styles.destructiveOption]} onPress={handleRemovePicture}>
+                        <View style={styles.optionIcon}>
+                          <X size={24} color="#EF4444" />
+                        </View>
+                        <View style={styles.optionContent}>
+                          <Text style={[styles.optionTitle, styles.destructiveText]}>Remove Picture</Text>
+                          <Text style={styles.optionDescription}>Use default avatar</Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}              
+              {/* Name Tab */}
+              {activeTab === 'name' && (
+                <View style={styles.nameTab}>
+                  <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.inputLabel}>Display Name</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={tempName}
+                      onChangeText={setTempName}
+                      placeholder="Enter your name"
+                      autoFocus
+                      maxLength={50}
+                    />
+                    <Text style={styles.inputHelper}>
+                      This is how your name appears in your profile
+                    </Text>
+                  </ScrollView>
+                  
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => setEditProfileModalVisible(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.saveButton, !tempName.trim() && styles.saveButtonDisabled]}
+                      onPress={handleSaveName}
+                      disabled={!tempName.trim()}
+                    >
+                      <Text style={[styles.saveButtonText, !tempName.trim() && styles.saveButtonTextDisabled]}>
+                        Save Changes
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}              
+              {/* Bio Tab */}
+              {activeTab === 'bio' && (
+                <View style={styles.bioTab}>
+                  <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.inputLabel}>Bio</Text>
+                    <TextInput
+                      style={[styles.textInput, styles.bioInput]}
+                      value={tempBio}
+                      onChangeText={setTempBio}
+                      placeholder={defaultBio}
+                      autoFocus
+                      multiline
+                      maxLength={200}
+                    />
+                    <Text style={styles.inputHelper}>
+                      {tempBio.length}/200 characters
+                    </Text>
+                  </ScrollView>
+                  
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => setEditProfileModalVisible(false)}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={handleSaveBio}
+                    >
+                      <Text style={styles.saveButtonText}>Save Changes</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}            
+              </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

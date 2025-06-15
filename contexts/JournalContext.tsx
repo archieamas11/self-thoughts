@@ -14,6 +14,7 @@ export interface JournalEntry {
 
 export interface UserProfile {
   name: string;
+  bio: string;
   profilePicture?: string;
 }
 
@@ -52,7 +53,7 @@ const generateRandomName = (): string => {
 export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState<UserProfile>({ name: '' });
+  const [userProfile, setUserProfile] = useState<UserProfile>({ name: '', bio: '' });
 
   // Initialize database and load data on component mount
   useEffect(() => {
@@ -72,8 +73,9 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       if (!profile) {
         // Generate random name for first-time users
         const randomName = generateRandomName();
-        profile = { name: randomName };
+        profile = { name: randomName, bio: '' };
         await databaseService.insertUserProfile(profile);
+
       }
       
       setUserProfile(profile);
@@ -82,7 +84,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ Error initializing data:', error);
       setEntries([]);
       // Generate fallback name if loading fails
-      setUserProfile({ name: generateRandomName() });
+      setUserProfile({ name: generateRandomName(), bio: '' });
     } finally {
       setIsLoading(false);
     }
