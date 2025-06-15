@@ -455,7 +455,8 @@ export default function Profile() {  const [settingsModalVisible, setSettingsMod
             </ScrollView>
           </View>
         </View>
-      </Modal>        {/* Edit Profile Modal */}
+      </Modal>        
+      {/* Edit Profile Modal */}
       <Modal
         animationType="slide"
         transparent={true}
