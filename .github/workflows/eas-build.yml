@@ -1,4 +1,4 @@
-name: EAS Build Android APK
+name: EAS Build APK
 
 on:
   workflow_dispatch:
@@ -18,8 +18,7 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli
 
-      - name: Log in to EAS
-        run: eas whoami || eas login --token lCgKgTX8DY6Kkiy6kj654KwRUo2GeWJmWXrhltTI
-
-      - name: Start Android build (APK)
+      - name: Build APK
+        env:
+          EAS_ACCESS_TOKEN: lCgKgTX8DY6Kkiy6kj654KwRUo2GeWJmWXrhltTI
         run: eas build -p android --profile preview --non-interactive
