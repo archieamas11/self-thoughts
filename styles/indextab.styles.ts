@@ -98,33 +98,43 @@ const styles = StyleSheet.create({
   },
   entriesContainer: {
     flex: 1,
-    paddingHorizontal: 16, // Reduced from 24
+    paddingHorizontal: 16,
   },
   entryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12, // Changed from 16
-    padding: 16, // Changed from 20
-    marginBottom: 12, // Changed from 16
+    borderRadius: 12, 
+    padding: 16, 
+    marginBottom: 12, 
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1, // Changed from 2
+      height: 1, 
     },
-    shadowOpacity: 0.08, // Changed from 0.1
-    shadowRadius: 2.62, // Changed from 3.84
-    elevation: 3, // Changed from 5
+    shadowOpacity: 0.08, 
+    shadowRadius: 2.62, 
+    elevation: 2, 
   },
   archivedEntryCard: {
     borderColor: '#EF4444',
-    borderWidth: 2,
+    borderWidth: 1,
+    backgroundColor: '#FEF2F2',
+    opacity: 0.75,
+  },
+  archivedEntryContent: {
+    textDecorationLine: 'line-through',
+    color: '#9CA3AF',
+  },
+  archivedEntryTitle: {
+    textDecorationLine: 'line-through',
+    color: '#6B7280',
   },
   entryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8, // Changed from 12
+    marginBottom: 8,
   },
   entryMood: {
     fontSize: 24,
@@ -193,5 +203,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default styles
-
+export default styles;

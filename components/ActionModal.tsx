@@ -1,10 +1,12 @@
 import React from 'react';
 import {
+  Animated,
+  Easing,
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 interface ActionModalProps {
@@ -22,47 +24,113 @@ export default function ActionModal({
   onRestore,
   onDelete,
 }: ActionModalProps) {
-  return (
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.3)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
+
+  React.useEffect(() => {
+    if (visible) {
+      // Reset values for smooth opening
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.3);
+      slideAnim.setValue(30);
+      
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          speed: 12,
+          bounciness: 4,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.out(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.3,
+          duration: 200,
+          easing: Easing.in(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 30,
+          duration: 200,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, fadeAnim, scaleAnim, slideAnim]);  return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.actionModal}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.questionIcon}>?</Text>
-          </View>
-            
-          <Text style={styles.actionModalTitle}>
-            What do you want to do?
-          </Text>
-          <Text style={styles.actionMessage}>
-            Restoring will bring the "{entryTitle}" back to your journal, while permanently deleting it will remove it forever.
-          </Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.actionModalButton, styles.restoreButton]}
-              onPress={onRestore}
+      <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+        <TouchableOpacity
+          style={styles.overlayTouchable}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <Animated.View
+              style={[
+                styles.actionModal,
+                {
+                  transform: [
+                    { scale: scaleAnim },
+                    { translateY: slideAnim }
+                  ],
+                },
+              ]}
             >
-              <Text style={styles.restoreButtonText}>Restore</Text>
-            </TouchableOpacity>
+              <View style={styles.iconContainer}>
+                <Text style={styles.questionIcon}>?</Text>
+              </View>
 
-            <TouchableOpacity
-              style={[styles.actionModalButton, styles.deleteButton]}
-              onPress={onDelete}
-            >
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
+              <Text style={styles.actionModalTitle}>What do you want to do?</Text>
+              <Text style={styles.actionMessage}>
+                Restoring will bring the "{entryTitle}" back to your journal, while
+                permanently deleting it will remove it forever.
+              </Text>
+
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.actionModalButton, styles.restoreButton]}
+                  onPress={onRestore}
+                >
+                  <Text style={styles.restoreButtonText}>Restore</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionModalButton, styles.deleteButton]}
+                  onPress={onDelete}
+                >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     </Modal>
   );
 }
@@ -74,12 +142,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  overlayTouchable: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   actionModal: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 32,
-    width: '85%',
-    maxWidth: 320,
+    width: '90%',
+    maxWidth: 300,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

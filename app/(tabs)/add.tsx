@@ -5,13 +5,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import AlertModal from '../../components/AlertModal';
 import SuccessModal from '../../components/SuccessModal';
 import { useJournal } from '../../contexts/JournalContext';
 import styles from '../../styles/addEntryTab.styles';
-
 
 const moodOptions = [
   { emoji: '😊', label: 'Happy', color: '#FDE047' },
@@ -30,7 +29,7 @@ export default function AddEntry() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  
+
   const { addEntry } = useJournal();
 
   const handleSaveEntry = async () => {
@@ -47,7 +46,7 @@ export default function AddEntry() {
         mood: selectedMood.emoji,
         moodLabel: selectedMood.label,
       });
-      
+
       // Show success modal
       setShowSuccessModal(true);
     } catch (error) {
@@ -70,8 +69,8 @@ export default function AddEntry() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>New Entry</Text>
-        <TouchableOpacity 
-          style={[styles.saveButton, isLoading && { opacity: 0.7 }]} 
+        <TouchableOpacity
+          style={[styles.saveButton, isLoading && { opacity: 0.7 }]}
           onPress={handleSaveEntry}
           disabled={isLoading}
         >
@@ -82,16 +81,24 @@ export default function AddEntry() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.formContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How are you feeling?</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.moodContainer}
+          >
             {moodOptions.map((mood) => (
               <TouchableOpacity
                 key={mood.label}
                 style={[
                   styles.moodOption,
-                  selectedMood.label === mood.label && styles.selectedMoodOption,
+                  selectedMood.label === mood.label &&
+                    styles.selectedMoodOption,
                 ]}
                 onPress={() => setSelectedMood(mood)}
               >
@@ -167,4 +174,3 @@ export default function AddEntry() {
     </View>
   );
 }
-

@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { handleModalAnimations } from './handleModalAnimations';
 
-interface ConfirmModalProps {
+interface ArchiveModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -21,7 +22,7 @@ interface ConfirmModalProps {
   iconColor?: string;
 }
 
-export default function ConfirmModal({
+export default function ArchiveModal({
   visible,
   onClose,
   onConfirm,
@@ -31,40 +32,10 @@ export default function ConfirmModal({
   cancelText = 'Cancel',
   confirmColor = '#EF4444',
   iconColor = '#EF4444',
-}: ConfirmModalProps) {
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
-
-  React.useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.8,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible, fadeAnim, scaleAnim]);
+}: ArchiveModalProps) {  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.3)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
+  handleModalAnimations(visible, fadeAnim, scaleAnim, slideAnim);
 
   const handleConfirm = () => {
     onConfirm();
@@ -79,33 +50,44 @@ export default function ConfirmModal({
       onRequestClose={onClose}
     >
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-        <Animated.View
-          style={[
-            styles.modal,
-            {
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
+        <TouchableOpacity
+          style={styles.overlayTouchable}
+          activeOpacity={1}
+          onPress={onClose}
         >
-          <View style={[styles.iconContainer, { backgroundColor: iconColor }]}>
-            <Archive size={32} color="#FFFFFF" strokeWidth={3} />
-          </View>
-          
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
-          
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>{cancelText}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.confirmButton, { backgroundColor: confirmColor }]} 
-              onPress={handleConfirm}
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>            
+            <Animated.View
+              style={[
+                styles.modal,
+                {
+                  transform: [
+                    { scale: scaleAnim },
+                    { translateY: slideAnim }
+                  ],
+                },
+              ]}
             >
-              <Text style={styles.confirmButtonText}>{confirmText}</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+              <View style={[styles.iconContainer, { backgroundColor: iconColor }]}>
+                <Archive size={32} color="#FFFFFF" strokeWidth={3} />
+              </View>
+
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.message}>{message}</Text>
+
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                  <Text style={styles.cancelButtonText}>{cancelText}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmButton, { backgroundColor: confirmColor }]}
+                  onPress={handleConfirm}
+                >
+                  <Text style={styles.confirmButtonText}>{confirmText}</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Animated.View>
     </Modal>
   );
@@ -118,6 +100,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  overlayTouchable: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modal: {
     backgroundColor: '#FFFFFF',
@@ -186,3 +174,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
