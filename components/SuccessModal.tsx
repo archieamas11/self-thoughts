@@ -1,12 +1,12 @@
 import { Check } from 'lucide-react-native';
 import React from 'react';
 import {
-    Animated,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface SuccessModalProps {
@@ -75,10 +75,10 @@ export default function SuccessModal({
           <View style={styles.iconContainer}>
             <Check size={32} color="#FFFFFF" strokeWidth={3} />
           </View>
-          
+
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          
+
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Continue</Text>
           </TouchableOpacity>

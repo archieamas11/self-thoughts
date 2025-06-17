@@ -26,7 +26,9 @@ class DatabaseService {
 
     // If we think we're initialized but the connection is null, reinitialize
     if (this.isInitialized && !this.db) {
-      console.log('⚠️ Database marked as initialized but connection is null, reinitializing...');
+      console.log(
+        '⚠️ Database marked as initialized but connection is null, reinitializing...',
+      );
       this.isInitialized = false;
     }
 
@@ -72,7 +74,7 @@ class DatabaseService {
       // Platform-specific database opening with retry logic
       let retryCount = 0;
       const maxRetries = 3;
-      
+
       while (retryCount < maxRetries) {
         try {
           if (Platform.OS === 'web') {
@@ -84,16 +86,21 @@ class DatabaseService {
             console.log('📱 Opening database for native platform');
             this.db = await SQLite.openDatabaseAsync(DB_NAME);
           }
-          
+
           if (this.db) {
             break; // Successfully opened
           }
         } catch (openError) {
           retryCount++;
-          console.warn(`Database open attempt ${retryCount} failed:`, openError);
-          
+          console.warn(
+            `Database open attempt ${retryCount} failed:`,
+            openError,
+          );
+
           if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * retryCount),
+            );
           } else {
             throw openError;
           }
@@ -105,12 +112,12 @@ class DatabaseService {
       }
 
       console.log('✅ Database opened successfully');
-      
+
       // Test the connection before proceeding
       await this.testConnection();
-      
+
       await this.createTables();
-      
+
       this.isInitialized = true;
       console.log('✅ Database initialized successfully');
     } catch (error) {
@@ -163,11 +170,11 @@ class DatabaseService {
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_entries_date ON journal_entries(date);
       `);
-      
+
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_entries_archived ON journal_entries(isArchived);
       `);
-      
+
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_entries_favorite ON journal_entries(isFavorite);
       `);
@@ -194,7 +201,7 @@ class DatabaseService {
       throw new Error(`Database connection test failed: ${error}`);
     }
   }
- 
+
   // Journal Entries CRUD operations
   async getAllEntries(): Promise<JournalEntry[]> {
     try {
@@ -202,7 +209,7 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       console.log('📖 Fetching all entries...');
-      
+
       const entries = await this.db.getAllAsync<any>(`
         SELECT * FROM journal_entries 
         ORDER BY date DESC, createdAt DESC
@@ -210,7 +217,7 @@ class DatabaseService {
 
       console.log(`✅ Retrieved ${entries.length} entries`);
 
-      return entries.map(entry => ({
+      return entries.map((entry) => ({
         id: entry.id,
         title: entry.title,
         content: entry.content,
@@ -235,36 +242,51 @@ class DatabaseService {
       try {
         await this.ensureConnection();
         if (!this.db) throw new Error('Database not initialized');
-        
+
         console.log('➕ Inserting entry:', entry.id);
-        
+
         // Test connection before attempting insert
         await this.testConnection();
-        
-        const result = await this.db.runAsync(`
+
+        const result = await this.db.runAsync(
+          `
           INSERT INTO journal_entries (id, title, content, date, mood, moodLabel, isArchived, isFavorite)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          entry.id,
-          entry.title,
-          entry.content,
-          entry.date,
-          entry.mood,
-          entry.moodLabel,
-          entry.isArchived ? 1 : 0,
-          entry.isFavorite ? 1 : 0,
-        ]);
+        `,
+          [
+            entry.id,
+            entry.title,
+            entry.content,
+            entry.date,
+            entry.mood,
+            entry.moodLabel,
+            entry.isArchived ? 1 : 0,
+            entry.isFavorite ? 1 : 0,
+          ],
+        );
 
-        console.log('✅ Entry inserted successfully:', entry.id, 'Result:', result);
+        console.log(
+          '✅ Entry inserted successfully:',
+          entry.id,
+          'Result:',
+          result,
+        );
         return; // Success, exit retry loop
       } catch (error) {
         retryCount++;
-        console.error(`❌ Error inserting entry (attempt ${retryCount}):`, error);
-        
+        console.error(
+          `❌ Error inserting entry (attempt ${retryCount}):`,
+          error,
+        );
+
         if (retryCount < maxRetries) {
-          console.log(`🔄 Retrying insert operation... (${retryCount}/${maxRetries})`);
+          console.log(
+            `🔄 Retrying insert operation... (${retryCount}/${maxRetries})`,
+          );
           await this.handleDatabaseError(error);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * retryCount),
+          );
         } else {
           console.error('❌ Max retries reached for insert operation');
           throw error;
@@ -273,7 +295,10 @@ class DatabaseService {
     }
   }
 
-  async updateEntry(id: string, updates: Partial<Omit<JournalEntry, 'id' | 'date'>>): Promise<void> {
+  async updateEntry(
+    id: string,
+    updates: Partial<Omit<JournalEntry, 'id' | 'date'>>,
+  ): Promise<void> {
     try {
       await this.ensureConnection();
       if (!this.db) throw new Error('Database not initialized');
@@ -311,12 +336,15 @@ class DatabaseService {
         values.push(id);
 
         console.log('📝 Updating entry:', id);
-        
-        await this.db.runAsync(`
+
+        await this.db.runAsync(
+          `
           UPDATE journal_entries 
           SET ${setClause.join(', ')} 
           WHERE id = ?
-        `, values);
+        `,
+          values,
+        );
 
         console.log('✅ Entry updated successfully:', id);
       }
@@ -333,7 +361,7 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       console.log('🗑️ Deleting entry:', id);
-      
+
       await this.db.runAsync('DELETE FROM journal_entries WHERE id = ?', [id]);
       console.log('✅ Entry deleted successfully:', id);
     } catch (error) {
@@ -350,9 +378,11 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       console.log('👤 Fetching user profile...');
-      
-      const profile = await this.db.getFirstAsync<any>('SELECT * FROM user_profile WHERE id = 1');
-      
+
+      const profile = await this.db.getFirstAsync<any>(
+        'SELECT * FROM user_profile WHERE id = 1',
+      );
+
       if (profile) {
         console.log('✅ User profile found');
         return {
@@ -361,7 +391,7 @@ class DatabaseService {
           profilePicture: profile.profilePicture,
         };
       }
-      
+
       console.log('ℹ️ No user profile found');
       return null;
     } catch (error) {
@@ -377,12 +407,15 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       console.log('👤 Inserting user profile...');
-      
-      await this.db.runAsync(`
+
+      await this.db.runAsync(
+        `
         INSERT OR REPLACE INTO user_profile (id, name, bio, profilePicture)
         VALUES (1, ?, ?, ?)
-      `, [profile.name || '', profile.bio || '', profile.profilePicture || null]);
-      
+      `,
+        [profile.name || '', profile.bio || '', profile.profilePicture || null],
+      );
+
       console.log('✅ User profile inserted successfully');
     } catch (error) {
       console.error('❌ Error inserting user profile:', error);
@@ -416,13 +449,16 @@ class DatabaseService {
         setClause.push('updatedAt = strftime("%s", "now")');
 
         console.log('👤 Updating user profile...');
-        
-        await this.db.runAsync(`
+
+        await this.db.runAsync(
+          `
           UPDATE user_profile 
           SET ${setClause.join(', ')} 
           WHERE id = 1
-        `, values);
-        
+        `,
+          values,
+        );
+
         console.log('✅ User profile updated successfully');
       }
     } catch (error) {
@@ -435,24 +471,27 @@ class DatabaseService {
   // Error handling method
   private async handleDatabaseError(error: any): Promise<void> {
     console.error('🔄 Handling database error, attempting to reinitialize...');
-    
+
     // Reset state
     this.isInitialized = false;
     this.initPromise = null;
-    
+
     // Close existing connection if it exists
     if (this.db) {
       try {
         await this.db.closeAsync();
       } catch (closeError) {
-        console.warn('Warning: Error closing database during error handling:', closeError);
+        console.warn(
+          'Warning: Error closing database during error handling:',
+          closeError,
+        );
       }
       this.db = null;
     }
-    
+
     // Try to reinitialize after a short delay
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       console.log('🔄 Attempting to reinitialize database...');
       await this.init();
       console.log('✅ Database reinitialized successfully');
@@ -484,12 +523,12 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       console.log('🧹 Clearing all data...');
-      
+
       await this.db.execAsync(`
         DELETE FROM journal_entries;
         DELETE FROM user_profile;
       `);
-      
+
       console.log('✅ All data cleared successfully');
     } catch (error) {
       console.error('❌ Error clearing data:', error);
@@ -503,7 +542,7 @@ class DatabaseService {
     try {
       await this.ensureConnection();
       if (!this.db) return false;
-      
+
       // Simple query to test connection
       await this.db.getFirstAsync('SELECT 1');
       return true;

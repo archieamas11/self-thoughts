@@ -24,7 +24,8 @@ export default function TabLayout() {
             fontWeight: '600',
             marginTop: 4,
           },
-        }}>
+        }}
+      >
         <Tabs.Screen
           name="index"
           options={{
@@ -38,18 +39,14 @@ export default function TabLayout() {
           name="add"
           options={{
             title: 'Add Entry',
-            tabBarIcon: ({ size, color }) => (
-              <Plus size={size} color={color} />
-            ),
+            tabBarIcon: ({ size, color }) => <Plus size={size} color={color} />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ size, color }) => (
-              <User size={size} color={color} />
-            ),
+            tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
           }}
         />
       </Tabs>

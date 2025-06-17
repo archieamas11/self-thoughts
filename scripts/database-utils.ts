@@ -67,7 +67,8 @@ export const DatabaseUtils = {
         {
           id: '1',
           title: 'My First SQLite Entry',
-          content: 'This is a test entry created after migrating to SQLite! The migration was successful.',
+          content:
+            'This is a test entry created after migrating to SQLite! The migration was successful.',
           date: new Date().toISOString().split('T')[0],
           mood: '😊',
           moodLabel: 'Happy',
@@ -77,7 +78,8 @@ export const DatabaseUtils = {
         {
           id: '2',
           title: 'Another Test Entry',
-          content: 'This is another test entry to verify that multiple entries work correctly in SQLite.',
+          content:
+            'This is another test entry to verify that multiple entries work correctly in SQLite.',
           date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
           mood: '🤔',
           moodLabel: 'Thoughtful',
@@ -87,7 +89,8 @@ export const DatabaseUtils = {
         {
           id: '3',
           title: 'Archived Entry',
-          content: 'This entry should be archived to test the archive functionality.',
+          content:
+            'This entry should be archived to test the archive functionality.',
           date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // 2 days ago
           mood: '😴',
           moodLabel: 'Tired',
@@ -114,21 +117,27 @@ export const DatabaseUtils = {
       await databaseService.init();
       const entries = await databaseService.getAllEntries();
       const profile = await databaseService.getUserProfile();
-      
+
       console.log('🔍 Database Health Check:');
       console.log(`  📊 Total entries: ${entries.length}`);
       console.log(`  👤 User profile exists: ${profile ? 'Yes' : 'No'}`);
-      console.log(`  📝 Active entries: ${entries.filter(e => !e.isArchived).length}`);
-      console.log(`  📦 Archived entries: ${entries.filter(e => e.isArchived).length}`);
-      console.log(`  ⭐ Favorite entries: ${entries.filter(e => e.isFavorite).length}`);
+      console.log(
+        `  📝 Active entries: ${entries.filter((e) => !e.isArchived).length}`
+      );
+      console.log(
+        `  📦 Archived entries: ${entries.filter((e) => e.isArchived).length}`
+      );
+      console.log(
+        `  ⭐ Favorite entries: ${entries.filter((e) => e.isFavorite).length}`
+      );
       console.log('✅ Database is healthy');
-      
+
       return {
         totalEntries: entries.length,
         hasProfile: !!profile,
-        activeEntries: entries.filter(e => !e.isArchived).length,
-        archivedEntries: entries.filter(e => e.isArchived).length,
-        favoriteEntries: entries.filter(e => e.isFavorite).length,
+        activeEntries: entries.filter((e) => !e.isArchived).length,
+        archivedEntries: entries.filter((e) => e.isArchived).length,
+        favoriteEntries: entries.filter((e) => e.isFavorite).length,
       };
     } catch (error) {
       console.error('❌ Database health check failed:', error);

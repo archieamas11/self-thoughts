@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -108,7 +107,7 @@ const styles = StyleSheet.create({
   profileStat: {
     alignItems: 'center',
   },
-   archivedStat: {
+  archivedStat: {
     alignItems: 'center',
   },
   statNumber: {
@@ -199,17 +198,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  actionContent: { // Added style for text container in security card
+  actionContent: {
+    // Added style for text container in security card
     marginLeft: 12,
     flex: 1,
   },
-  actionTitle: { // Added style for the title in security card
+  actionTitle: {
+    // Added style for the title in security card
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 2,
   },
-  actionSubtitle: { // Added style for the subtitle in security card
+  actionSubtitle: {
+    // Added style for the subtitle in security card
     fontSize: 14,
     color: '#6B7280',
   },
@@ -219,7 +221,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontWeight: '500',
   },
-    // Modal styles
+  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 16,
   },
-  
+
   // Login styles
   loginPrompt: {
     alignItems: 'center',
@@ -338,7 +340,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
-  
+
   // Logged in styles
   loggedInContainer: {
     backgroundColor: '#F0F9FF',
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '500',
   },
-  
+
   // Settings item styles
   settingItem: {
     flexDirection: 'row',
@@ -418,7 +420,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
-  
+
   // About styles
   aboutItem: {
     flexDirection: 'row',
@@ -439,7 +441,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontWeight: '600',
   },
-  
+
   // Edit Name Modal styles
   editNameModal: {
     backgroundColor: '#FFFFFF',
@@ -571,7 +573,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  footerContent:{
+  footerContent: {
     marginTop: 20,
     alignItems: 'center',
   },
@@ -629,7 +631,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
   },
-  
+
   // Picture Tab styles
   pictureTab: {
     flex: 1,
@@ -699,7 +701,7 @@ const styles = StyleSheet.create({
   destructiveText: {
     color: '#EF4444',
   },
-    // Name & Bio Tab styles
+  // Name & Bio Tab styles
   nameTab: {
     flex: 1,
     paddingBottom: 80, // Add space for action buttons
@@ -724,12 +726,13 @@ const styles = StyleSheet.create({
     height: 120,
     textAlignVertical: 'top',
     paddingTop: 16,
-  },  inputHelper: {
+  },
+  inputHelper: {
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 24,
     paddingLeft: 4,
-  },  
+  },
   actionButtons: {
     flexDirection: 'row',
     gap: 16,

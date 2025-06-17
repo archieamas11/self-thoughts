@@ -1,11 +1,13 @@
 import { Archive, Heart } from 'lucide-react-native';
 import React from 'react';
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Easing,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 type FilterType = 'all' | 'archived' | 'favorites';
@@ -23,6 +25,61 @@ export default function FilterModal({
   filterType,
   onFilterSelect,
 }: FilterModalProps) {
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.3)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
+
+  React.useEffect(() => {
+    if (visible) {
+      // Reset values for smooth opening
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.3);
+      slideAnim.setValue(30);
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          speed: 12,
+          bounciness: 4,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.out(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.3,
+          duration: 200,
+          easing: Easing.in(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 30,
+          duration: 200,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, fadeAnim, scaleAnim, slideAnim]);
+
   const handleFilterSelect = (filter: FilterType) => {
     onFilterSelect(filter);
     onClose();
@@ -32,63 +89,94 @@ export default function FilterModal({
     <Modal
       visible={visible}
       transparent={true}
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.filterModal}>
-          <Text style={styles.filterModalTitle}>Filter Entries</Text>
-          
-          <TouchableOpacity
-            style={[
-              styles.filterModalButton,
-              filterType === 'all' && styles.activeFilterModalButton,
-            ]}
-            onPress={() => handleFilterSelect('all')}
-          >
-            <Text style={[
-              styles.filterModalButtonText,
-              filterType === 'all' && styles.activeFilterModalButtonText
-            ]}>All Entries</Text>
-          </TouchableOpacity>
+      <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+        <TouchableOpacity
+          style={styles.overlayTouchable}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <Animated.View
+              style={[
+                styles.filterModal,
+                {
+                  transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+                },
+              ]}
+            >
+              <Text style={styles.filterModalTitle}>Filter Entries</Text>
 
-          <TouchableOpacity
-            style={[
-              styles.filterModalButton,
-              filterType === 'favorites' && styles.activeFilterModalButton,
-            ]}
-            onPress={() => handleFilterSelect('favorites')}
-          >
-            <View style={styles.filterModalButtonContent}>
-              <Heart size={18} color={filterType === 'favorites' ? '#FFFFFF' : '#EF4444'} />
-              <Text style={[
-                styles.filterModalButtonText,
-                filterType === 'favorites' && styles.activeFilterModalButtonText
-              ]}>Favorites</Text>
-            </View>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.filterModalButton,
+                  filterType === 'all' && styles.activeFilterModalButton,
+                ]}
+                onPress={() => handleFilterSelect('all')}
+              >
+                <Text
+                  style={[
+                    styles.filterModalButtonText,
+                    filterType === 'all' && styles.activeFilterModalButtonText,
+                  ]}
+                >
+                  All Entries
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.filterModalButton,
-              filterType === 'archived' && styles.activeFilterModalButton,
-            ]}
-            onPress={() => handleFilterSelect('archived')}
-          >
-            <View style={styles.filterModalButtonContent}>
-              <Archive size={18} color={filterType === 'archived' ? '#FFFFFF' : '#6B7280'} />
-              <Text style={[
-                styles.filterModalButtonText,
-                filterType === 'archived' && styles.activeFilterModalButtonText
-              ]}>Archived</Text>
-            </View>
+              <TouchableOpacity
+                style={[
+                  styles.filterModalButton,
+                  filterType === 'favorites' && styles.activeFilterModalButton,
+                ]}
+                onPress={() => handleFilterSelect('favorites')}
+              >
+                <View style={styles.filterModalButtonContent}>
+                  <Heart
+                    size={18}
+                    color={filterType === 'favorites' ? '#FFFFFF' : '#EF4444'}
+                  />
+                  <Text
+                    style={[
+                      styles.filterModalButtonText,
+                      filterType === 'favorites' &&
+                        styles.activeFilterModalButtonText,
+                    ]}
+                  >
+                    Favorites
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.filterModalButton,
+                  filterType === 'archived' && styles.activeFilterModalButton,
+                ]}
+                onPress={() => handleFilterSelect('archived')}
+              >
+                <View style={styles.filterModalButtonContent}>
+                  <Archive
+                    size={18}
+                    color={filterType === 'archived' ? '#FFFFFF' : '#6B7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.filterModalButtonText,
+                      filterType === 'archived' &&
+                        styles.activeFilterModalButtonText,
+                    ]}
+                  >
+                    Archived
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     </Modal>
   );
 }
@@ -100,12 +188,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  overlayTouchable: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   filterModal: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
-    width: '80%',
-    maxWidth: 300,
+    width: '90%',
+    maxWidth: 600,
+    minWidth: 300,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

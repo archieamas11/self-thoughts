@@ -12,10 +12,10 @@ export default function DatabaseDebugger() {
     try {
       setStatus('Initializing...');
       setError(null);
-      
+
       await databaseService.init();
       setStatus('Initialized');
-      
+
       const loadedEntries = await databaseService.getAllEntries();
       setEntries(loadedEntries);
       setStatus(`Loaded ${loadedEntries.length} entries`);
@@ -61,7 +61,7 @@ export default function DatabaseDebugger() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Database Debugger</Text>
-      
+
       <View style={styles.statusSection}>
         <Text style={styles.statusLabel}>Status: {status}</Text>
         {error && <Text style={styles.error}>Error: {error}</Text>}
@@ -71,11 +71,11 @@ export default function DatabaseDebugger() {
         <TouchableOpacity style={styles.button} onPress={testDatabase}>
           <Text style={styles.buttonText}>Test Database</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.button} onPress={addTestEntry}>
           <Text style={styles.buttonText}>Add Test Entry</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={clearDatabase}>
           <Text style={styles.buttonText}>Clear Database</Text>
         </TouchableOpacity>
