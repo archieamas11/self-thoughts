@@ -1,8 +1,11 @@
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
 import {
   BookOpen,
   Calendar,
   Camera,
+  Download,
   Edit,
   Globe,
   Heart,
@@ -13,7 +16,7 @@ import {
   Shield,
   Smartphone,
   User,
-  X,
+  X
 } from 'lucide-react-native';
 import type React from 'react';
 import { useState } from 'react';
@@ -51,9 +54,8 @@ export default function Profile() {
   const [userEmail, setUserEmail] = useState('');
   const { entries, userProfile, updateUserProfile } = useJournal();
 
-  const defaultBio =
-    "Writing helps me understand myself better and appreciate life's small moments.";
-  const version = '1.2.0';
+  const defaultBio = "Writing helps me understand myself better and appreciate life's small moments.";
+  const version = '1.3.0';
 
   // Calculate real statistics
   const totalEntries = entries.filter((entry) => !entry.isArchived).length;
@@ -148,8 +150,96 @@ export default function Profile() {
   //   { title: 'Reflection Pro', description: 'Wrote 100 journal entries', earned: false },
   // ];
 
+  const exportDatabase = async () => {
+    try {
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert(
+          'Sharing Not Available',
+          'Sharing is not available on this device. Your data will be logged to the console instead.'
+        );
+      }
+
+      // Get all data from the database
+      const [allEntries, userProfileData] = await Promise.all([
+        // Get entries from the journal context (already loaded)
+        entries,
+        // Get user profile
+        userProfile
+      ]);
+
+      // Create export data object
+      const exportData = {
+        metadata: {
+          exportDate: new Date().toISOString(),
+          appVersion: version,
+          totalEntries: allEntries.length,
+          activeEntries: allEntries.filter(entry => !entry.isArchived).length,
+          archivedEntries: allEntries.filter(entry => entry.isArchived).length,
+          favoriteEntries: allEntries.filter(entry => entry.isFavorite).length,
+        },
+        userProfile: userProfileData,
+        entries: allEntries.map(entry => ({
+          ...entry,
+          // Add readable export date
+          exportDate: new Date().toISOString()
+        }))
+      };
+
+      // Create a formatted JSON string
+      const jsonString = JSON.stringify(exportData, null, 2);
+
+      // Create filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const filename = `self-thoughts-backup-${timestamp}.json`;
+      const fileUri = FileSystem.documentDirectory + filename;
+
+      // Write the JSON file
+      await FileSystem.writeAsStringAsync(fileUri, jsonString);
+
+      if (isAvailable) {
+        // Share the file
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Export Journal Data',
+          UTI: 'public.json'
+        });
+
+        Alert.alert(
+          'Export Successful!',
+          `Your journal data has been exported successfully. File: ${filename}\n\nThis includes ${exportData.metadata.totalEntries} entries and your profile data.`
+        );
+      } else {
+        // If sharing not available, just log the data
+        console.log('📊 Exported Journal Data:', exportData);
+        Alert.alert(
+          'Export Complete',
+          `Your journal data has been prepared and logged to the console. Total entries: ${exportData.metadata.totalEntries}`
+        );
+      }
+
+      // Clean up the temporary file after sharing
+      setTimeout(async () => {
+        try {
+          await FileSystem.deleteAsync(fileUri);
+        } catch (cleanupError) {
+          console.warn('Could not clean up temporary export file:', cleanupError);
+        }
+      }, 5000);
+
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+      Alert.alert(
+        'Export Failed',
+        `Failed to export your journal data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  };
+
+
   const handleGoogleLogin = () => {
-    // Mock Google login - you'll implement the real functionality later
+    // Mock Google login - I will implement the real functionality later
     Alert.alert(
       'Google Login',
       'This is a demo. Real Google authentication will be implemented later.',
@@ -463,13 +553,29 @@ export default function Profile() {
               {/* Privacy & Security Section */}
               <View style={styles.modalSection}>
                 <Text style={styles.modalSectionTitle}>Privacy & Security</Text>
-
-                <TouchableOpacity style={styles.settingItem}>
+                <TouchableOpacity style={styles.settingItem}
+                  onPress={() => Alert.alert('Soon hehe',
+                    'This feature is not yet implemented. I will work on it soon.'
+                  )}>
                   <Lock size={20} color="#3B82F6" />
                   <View style={styles.settingContent}>
                     <Text style={styles.settingTitle}>App Lock</Text>
                     <Text style={styles.settingDescription}>
                       Require passcode or biometric to open app
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Your Data</Text>
+                <TouchableOpacity style={styles.settingItem}
+                  onPress={exportDatabase}>
+                  <Download size={20} color="#3B82F6" />
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingTitle}>Download Data</Text>
+                    <Text style={styles.settingDescription}>
+                      Export your journal entries as a file
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -495,19 +601,18 @@ export default function Profile() {
                   <Text style={styles.aboutValue}>{version}</Text>
                 </View>
 
-                <TouchableOpacity style={styles.settingItem}>
+                {/* <TouchableOpacity style={styles.settingItem}>
                   <Text style={styles.settingTitle}>Terms of Service</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.settingItem}>
                   <Text style={styles.settingTitle}>Privacy Policy</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 {/* Footer */}
                 <View style={styles.footerContent}>
                   <Text style={styles.footerText}>
-                    Made with <Heart size={14} color="#EF4444" fill="#EF4444" />{' '}
-                    by Archie Albarico
+                    Made with <Heart size={12} color="#EF4444" fill="#EF4444" /> by Archie Albarico
                   </Text>
                 </View>
               </View>

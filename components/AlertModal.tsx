@@ -2,6 +2,7 @@ import { AlertTriangle } from 'lucide-react-native';
 import React from 'react';
 import {
   Animated,
+  Easing,
   Modal,
   StyleSheet,
   Text,
@@ -25,20 +26,33 @@ export default function AlertModal({
   buttonText = 'OK',
 }: AlertModalProps) {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.3)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
 
   React.useEffect(() => {
     if (visible) {
+      // Reset values for smooth opening
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.3);
+      slideAnim.setValue(30);
+
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
-          tension: 100,
-          friction: 8,
+          speed: 12,
+          bounciness: 4,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.out(Easing.back(1.5)),
           useNativeDriver: true,
         }),
       ]).start();
@@ -47,11 +61,19 @@ export default function AlertModal({
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 200,
+          easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
-          toValue: 0.8,
+          toValue: 0.3,
           duration: 200,
+          easing: Easing.in(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 30,
+          duration: 200,
+          easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
         }),
       ]).start();
