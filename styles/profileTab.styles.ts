@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalSection: {
-    marginBottom: 32,
+    marginBottom: 25,
   },
   modalSectionTitle: {
     fontSize: 18,
@@ -402,7 +402,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -429,7 +428,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   aboutLabel: {
     fontSize: 16,
@@ -574,12 +573,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerContent: {
-    marginTop: 20,
-    alignItems: 'center',
+  alignItems: 'center',
   },
   footerText: {
+    fontStyle: 'italic',
     fontSize: 14,
     color: '#6B7280',
+    marginBottom: 20,
   },
   // Edit Profile Modal styles (unified modal)
   editProfileModal: {

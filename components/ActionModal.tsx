@@ -204,14 +204,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     flex: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   restoreButton: {
     backgroundColor: '#10B981',
