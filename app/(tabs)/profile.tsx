@@ -575,7 +575,7 @@ export default function Profile() {
                   <View style={styles.settingContent}>
                     <Text style={styles.settingTitle}>Download Data</Text>
                     <Text style={styles.settingDescription}>
-                      Export your journal entries as a file
+                      Export your journal data as a file
                     </Text>
                   </View>
                 </TouchableOpacity>
